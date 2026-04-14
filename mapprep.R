@@ -219,5 +219,5 @@ html_content <- paste0('
 ')
 
 # Write the final HTML file
-writeLines(html_content, "map/index.html")
+writeLines(html_content, "index.html")
 print("--- MAP PREPARATION COMPLETE ---")
