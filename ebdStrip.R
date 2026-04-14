@@ -156,4 +156,3 @@ unlink (paste(india_shp,'.*',sep=''))
 
 # Generate interactive map based on updated data
 source("mapprep.R")
-
