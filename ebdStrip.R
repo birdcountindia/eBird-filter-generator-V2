@@ -1,181 +1,159 @@
-library (plyr)
 library (dplyr)
-library (rgdal)
-library (sp)
-library (compare)
-source("eBirdColumnStrip.R")
+library(sf)
+library(skimmr)
+library(googlesheets4)
+library(tictoc)
+library(lubridate)
+library(future.apply)
 
 #################################################################
 #                   eBird Record Stripper                       #
-#                                                               #
-# This script pre-processes eBird records file and india        #
+# This script pre-processes eBird records file and india        # 
 # shape files to create RDS files for uploading to shiny        #
 #################################################################
 
-#######################Configurations###########################
-#Name of the eBird quarterly archive WITHOUT .zip
-ebd_file_name <- 'ebd_IN_relApr-2021'
+#eBird data file
+ebd_file_name <- "../ebird-datasets/EBD/ebd_IN_unv_smp_relFeb-2026.txt"
 
-#Name of the India region shape file archive WITHOUT .zip
-india_shape_file <- 'indiama-editedSQ'
-state <- 'IN-KL'
+#Name of the India region shape file
+india_shp <- 'India_v162' 
+#state <- 'IN-KL'
+
+filtersheet <- "https://docs.google.com/spreadsheets/d/1vH-Ptjdz6UUAnfoZgi-aqS2YjBcjC3EbuEjB_W4lhL0/"
+
+gs4_auth(email = "alenalex@ncf-india.org")
 ################################################################
 
 #Unzip and read eBird records
-#unzip(paste('..\\data\\',ebd_file_name,'.zip',sep=''))
-#ebd <- read.delim(paste(ebd_file_name,'.txt',sep=''), na.strings = c("NA", "", "null"), as.is=TRUE, quote="")
+#unzip(paste(ebd_file_name, '.zip', sep='')) #if montly scripts haven't been run yet.
+ebd <- read.ebd(ebd_file_name)
+preimp <- c("TAXONOMIC.ORDER", "CATEGORY","COMMON.NAME", "SUBSPECIES.COMMON.NAME","OBSERVATION.COUNT", "STATE","STATE.CODE", "COUNTY","COUNTY.CODE", "LATITUDE", "LONGITUDE", "OBSERVATION.DATE", "SAMPLING.EVENT.IDENTIFIER", "GROUP.IDENTIFIER", "DURATION.MINUTES" ,"ALL.SPECIES.REPORTED")
+ebd <- ebd[, preimp]
 
-ebd <- readEbdColumns (ebd_file_name, '..\\data\\')
+ebd <- ebd %>%
+  filter(!is.na(DURATION.MINUTES)) %>%
+  mutate(GROUP.ID = ifelse(is.na(GROUP.IDENTIFIER),SAMPLING.EVENT.IDENTIFIER, GROUP.IDENTIFIER),
+         COMMON.NAME = ifelse(CATEGORY == "issf",SUBSPECIES.COMMON.NAME, COMMON.NAME))
 
-#' Returns the number of days in a vector of month. Feb returns 29 by default
-#' 
-#' @param m Index of the month 1..12.
-#' @return Number of days in a particular month.
-#' @examples
-#' daysInMonth(5)
-
-daysInMonth <- Vectorize (function(m=30){
-  
-  # Return the number of days in the month
-  return(switch(m,
-                '01' = 31,
-                '02' = 29,
-                '03' = 31,
-                '04' = 30,
-                '05' = 31,
-                '06' = 30,
-                '07' = 31,
-                '08' = 31,
-                '09' = 30,
-                '10' = 31,
-                '11' = 30,
-                '12' = 31))
-}
-)
-
-
-filterRecords <- function (state, dat)
-{
-  print(nrow(dat))
-  print(state)
-  # Strip unwanted columns from eBird records
-  ebd_records <- subset(dat[dat$STATE.CODE == state,], select = c("TAXONOMIC.ORDER", "OBSERVATION.COUNT", "UNIQUE_SAMPLING_ID", "COMMON.NAME"))
-
-    #Remove entries from shared lists
-  ebd_records   <- ebd_records[!duplicated(ebd_records[c("UNIQUE_SAMPLING_ID","COMMON.NAME")]),]
-    
-  # Strip unwanted columns from eBird records
-  ebd_records <- subset(ebd_records, select = c("TAXONOMIC.ORDER", "OBSERVATION.COUNT", "UNIQUE_SAMPLING_ID"))
-
-  # Write to RDS file with compression
-  saveRDS(ebd_records,    paste0('..\\data\\ebd_records_',state,'.rds'))
+filterRecords <- function (state, dat) {
+  print(nrow(dat))  # Print the number of rows in the input data
+  print(state)      # Print the state being processed
+  # Strip unwanted rows from eBird records
+  ebd_records <- dat |>  filter(STATE.CODE == state)
+  # Remove entries from shared lists
+  ebd_records <- ebd_records |>  distinct(GROUP.ID, COMMON.NAME, .keep_all = TRUE)%>%
+    select(TAXONOMIC.ORDER, OBSERVATION.COUNT, GROUP.ID)
+  saveRDS(ebd_records, paste0('data/ebd_records_', state, '.rds'))
 }
 
-# Remove lists with NA duration (e.g. historical)
-ebd <- ebd[!is.na(ebd$DURATION.MINUTES),]
-
-#Add unique list identifier for removing duplicates
-ebd <- within (ebd, UNIQUE_SAMPLING_ID <-  ifelse(is.na(GROUP.IDENTIFIER),SAMPLING.EVENT.IDENTIFIER,GROUP.IDENTIFIER))
-
-#If subspecies, copy subspecies common name
-ebd <- within (ebd, COMMON.NAME <-  ifelse(CATEGORY=='issf',SUBSPECIES.COMMON.NAME,COMMON.NAME))
-
-#Create state list by removing duplicate state entries
-ebd_states    <- ebd[!duplicated(ebd$STATE.CODE),]
-
-# Strip unwanted columns from eBird states
-ebd_states    <- subset(ebd_states, select = c("STATE.CODE", "STATE"))
+#Create state wise datasets
+ebd_states <- ebd |>
+  distinct(STATE.CODE, STATE)
 
 #Splitting into state based records
-sapply (ebd_states$STATE.CODE,filterRecords, dat <- ebd)
-dat <- NULL #Release memory
+sapply (ebd_states$STATE.CODE, filterRecords, dat = ebd)
+rm(dat) #Release memory
+
 #Create species list by removing duplicate species entries
-ebd_species   <- ebd[!duplicated(ebd$TAXONOMIC.ORDER),]
+ebd_species   <- ebd |> distinct(TAXONOMIC.ORDER, COMMON.NAME)
 
 #Create district list by removing duplicate district entries
-ebd_districts <- ebd[!duplicated(ebd$COUNTY.CODE),]
+ebd_districts <- ebd |> distinct(COUNTY.CODE, COUNTY)
 
 #Create unique lists by removing duplicate lists
-ebd_lists     <- ebd[!duplicated(ebd$UNIQUE_SAMPLING_ID),]
-
+ebd_lists     <- ebd |> distinct(GROUP.ID, .keep_all = T) |> 
+  select(STATE.CODE, COUNTY.CODE,OBSERVATION.DATE, DURATION.MINUTES, 
+         LONGITUDE,LATITUDE,GROUP.ID, ALL.SPECIES.REPORTED)
 # At this point, the primary ebd data is no longer needed
-ebd <-NULL #Release memory
+#rm(ebd) #Release memory
 
-# Strip unwanted columns from eBird species
-ebd_species   <- subset(ebd_species, select = c("TAXONOMIC.ORDER", "COMMON.NAME"))
+ebd_lists <- ebd_lists %>%
+  mutate(obs_date = as.Date(OBSERVATION.DATE),
+    Fortnight = month(obs_date) +
+      0.5 * as.integer(0.5 + day(obs_date) / days_in_month(obs_date))) %>%
+  select(-OBSERVATION.DATE)
 
-# Strip unwanted columns from eBird districts
-ebd_districts <- subset(ebd_districts, select = c("COUNTY.CODE", "COUNTY"))
+#Open the shape file
+indiamap <- st_read(paste0("data/",india_shp,".geojson"))
 
-# Add a fortnight field. There are 12 months a year, 24 fortnights. E.g. 5.5 is 11th fortnight in a year
-# E.g. 14th of September = 0.5 * int (14/30 + 0.5) = 0. 15th of February = 0.5 * int (15/30 + 0.5) = 0.5
+indiamap <- indiamap %>%
+  rename(POLYGON.ID = id)
 
-ebd_lists <- within (ebd_lists, Fortnight <-  as.numeric(format(as.Date(OBSERVATION.DATE),"%m")) +
-                             0.5 * as.integer(0.5 + as.numeric(format(as.Date(OBSERVATION.DATE),"%d"))/daysInMonth (as.integer(format(as.Date(OBSERVATION.DATE),"%m")))))
+#Whenever a new Polygon file is loaded use this block to update the gsheet.
 
-# Strip unwanted columns from eBird lists
-ebd_lists <- subset(ebd_lists, select = c("STATE.CODE", "COUNTY.CODE", "Fortnight", "DURATION.MINUTES", "LONGITUDE", "LATITUDE", "UNIQUE_SAMPLING_ID", "ALL.SPECIES.REPORTED"))
+# match_regions <- function(indiamap, ebd_states, ebd_districts, target_col = "subregion") {
+#   indiamap$STATE <- NA
+#   indiamap$COUNTY <- NA
+#   
+#   clean_states <- na.omit(unique(ebd_states$STATE))
+#   for (st in clean_states) {
+#     match_idx <- grepl(st, indiamap[[target_col]], ignore.case = TRUE)
+#     indiamap$STATE[match_idx] <- st}
+#   
+#   clean_districts <- na.omit(unique(ebd_districts$COUNTY))
+#   for (dt in clean_districts) {
+#     match_idx <- grepl(dt, indiamap[[target_col]], ignore.case = TRUE)
+#     indiamap$COUNTY[match_idx] <- dt}
+#   
+#   indiamap$STATE[is.na(indiamap$STATE)] <- "spl_region"
+#   indiamap$COUNTY[is.na(indiamap$COUNTY)] <- "spl_region"
+#   
+#   return(indiamap)
+# }
+# 
+# indiamap <- match_regions(indiamap, ebd_states, ebd_districts, target_col = "subregion")
+# 
+# sheet_write(
+#   data = sf::st_drop_geometry(indiamap), 
+#   ss = filtersheet,
+#   sheet = india_shp  
+# )
 
-#Unzip and open the shape file
-unzip(paste('..\\data\\',india_shape_file,'.zip',sep=''))
-indiamap <- rgdal::readOGR(paste(india_shape_file,'.shp', sep=''), india_shape_file)
-
-sp::coordinates(ebd_lists) <- ~LONGITUDE+LATITUDE
+ebd_lists_sf <- sf::st_as_sf(ebd_lists, 
+                             coords = c("LONGITUDE", "LATITUDE"), crs = 4326)
 
 # Map the CRS
-sp::proj4string(ebd_lists) <- sp::proj4string(indiamap)
-
-ebd_filters <- data.frame(FILTER=character(),
-                          stringsAsFactors=FALSE)
+sf::st_crs(ebd_lists_sf) <- sf::st_crs(indiamap)
 
 ebd_lists_with_filter <- NULL
 
-for (filterindex in 1:nrow(indiamap@data))
-{
-  # Store filter metadata in another dataframe
-  ebd_filters [filterindex, ] <- as.character(indiamap$AREA_1[filterindex])
-  head(ebd_filters,20)
-  
-  # Filter lists according to set filter polygons 
-  india_selected  <- indiamap[filterindex, ]
-  rgl_ebd_lists   <- ebd_lists
-  rgl_ebd_lists$FILTER  <- 0;
-  rgl_ebd_lists   <- rgl_ebd_lists[india_selected, ]
-  
-  # For all filtered lists, assign the filter_index
-  rgl_ebd_lists$FILTER  <- filterindex;
-  
-  if(!is.null(ebd_lists_with_filter))
-  {
-    ebd_lists_with_filter <- rbind (ebd_lists_with_filter, rgl_ebd_lists)
-  }
-  else
-  {
-    ebd_lists_with_filter <- rgl_ebd_lists
-  }
-  
-  filterindex  <- filterindex + 1
-}
+# Fix geometries if invalid #maybe unnecessary 
+indiamap <- sf::st_make_valid(indiamap)
+ebd_lists_sf <- sf::st_make_valid(ebd_lists_sf)
 
+# Ensure CRS alignment
+sf::st_crs(ebd_lists_sf) <- sf::st_crs(indiamap)
+
+tic("Vectorized Intersection")
+sf::sf_use_s2(FALSE)
+ebd_lists_with_filter <- sf::st_intersection(ebd_lists_sf, indiamap["POLYGON.ID"])
+ebd_lists_with_filter <- sf::st_drop_geometry(ebd_lists_with_filter)
+sf::sf_use_s2(TRUE)
+toc()
+
+ebd_polygons <- data.frame(
+  POLYGON.ID = indiamap$POLYGON.ID,
+  POLYGON = as.character(indiamap$subregion), 
+  stringsAsFactors = FALSE
+)
 # Strip the list before joining
-ebd_lists_with_filter <- subset(as.data.frame(ebd_lists_with_filter), select = c("UNIQUE_SAMPLING_ID", "FILTER"))
+ebd_lists_with_filter <- subset(as.data.frame(ebd_lists_with_filter), select = c("GROUP.ID", "POLYGON.ID"))
 
-ebd_lists <- as.data.frame (ebd_lists)
+ebd_lists <- ebd_lists %>%
+  left_join(ebd_lists_with_filter, by = "GROUP.ID") %>%
+  mutate(POLYGON.ID = coalesce(POLYGON.ID, 0))
 
-# Join the filter assigned lists to the full lists. Remaining expected to be filter=0
-ebd_lists <- join (ebd_lists, ebd_lists_with_filter, by = 'UNIQUE_SAMPLING_ID')
-
-ebd_lists$FILTER[is.na(ebd_lists$FILTER)] <- 0
-
-# Bug. Why join has 2 more than actual lists
-
-saveRDS(ebd_species,    '..\\data\\ebd_species.rds')
-saveRDS(ebd_states,     '..\\data\\ebd_states.rds')
-saveRDS(ebd_districts,  '..\\data\\ebd_districts.rds')
-saveRDS(ebd_filters,    '..\\data\\ebd_filters.rds')
-saveRDS(ebd_lists,      '..\\data\\ebd_lists.rds')
+saveRDS(ebd_species,'data/ebd_species.rds')
+saveRDS(ebd_states,'data/ebd_states.rds')
+saveRDS(ebd_districts,'data/ebd_districts.rds')
+saveRDS(ebd_polygons,'data/ebd_polygons.rds')
+saveRDS(ebd_lists,'data/ebd_lists.rds')
 
 #Remove temp files
 unlink ('*.txt')
 unlink ('*.pdf')
-unlink (paste(india_shape_file,'.*',sep=''))
+unlink (paste(india_shp,'.*',sep=''))
+
+# Generate interactive map based on updated data
+source("mapprep.R")
+

@@ -4,7 +4,18 @@ library(DT)
 source("helper.r")
 source("global.r")
 
-shinyServer <- function(input, output) {
+shinyServer <- function(input, output, session) {
+  
+  observeEvent(input$state, {
+    if (input$state == "None") {
+      all_regions <- sort(unique(g_filters$FILTER))
+      updateSelectInput(session, "filterRegion", choices = c("None", all_regions))
+    } 
+    else {
+      valid_regions <- g_filters$FILTER[g_filters$STATE == input$state]
+      updateSelectInput(session, "filterRegion", choices = c("None", sort(unique(valid_regions))))
+    }
+  })
   
 output$minutes <- renderText( { 
   paste ("List duration <= ",
@@ -48,17 +59,17 @@ shinyUI <- fluidPage(
   fluidRow(
     column(12,
            p("Uses eBird data to generate a fortnightly/monthly eBird filter automatically"),
-           p("Created and maintained by Praveen J, Bird Count India",
+           p("Created and maintained by Praveen J & Alen Alex, Bird Count India",
              a("(@Praveen J)", href = "Email:paintedstork@gmail.com")),
-           p("Last Date of Update. Data: 30 May 2021. Code: 30 May 2021. Filter Configuration: Dynamic - Managed by Bird Count India"))
+           p("Last Date of Update. Data: 31 March 2026. Code: 30 April 2026. Filter Configuration: Dynamic - Managed by Bird Count India"))
   ), 
   
   
   sidebarPanel(
     width = 3,  
+    selectInput("state", "Select State:", choices = c("None", sort(unique(g_states$STATE)))),
     
-    selectInput('filterRegion', 'Filter Region', choices = c("None",g_all_filters), selected = 'India--West Bengal--North'),
-    selectInput('state', 'State', choices = c("None",g_states$STATE), selected = firstState),
+    selectInput("filterRegion", "Select Filter Region:", choices = c("None")),
                             
     selectInput('fortnight', 'Period', c('Month', 'Fortnight')),
 
@@ -99,7 +110,5 @@ shinyUI <- fluidPage(
     downloadButton('downloadData', 'Download')
   )
 )
-
-    
 
 shinyApp(ui = shinyUI, server = shinyServer)
