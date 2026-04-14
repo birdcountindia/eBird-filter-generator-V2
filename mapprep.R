@@ -1,27 +1,21 @@
 library(sf)          
 library(jsonlite)    
 library(dplyr)
-library(base64enc) # NEW: Required to embed the logo directly into HTML
-
+library(base64enc) 
 source("datapuller.r")
 
-print("--- STARTING DYNAMIC MAP PREPARATION ---")
+print("--- STARTING MAP PREPARATION ---")
 
-# 1. Load and Merge Data
 sheet_data <- getPolygonFilters()
 
 map_data <- indiamap %>%
   left_join(sheet_data, by = "POLYGON.ID")
 
 print("Saving processed map data...")
-# Ensure directories exist
-if (!dir.exists("data/map")) dir.create("data/map", recursive = TRUE)
-if (!dir.exists("map")) dir.create("map", recursive = TRUE)
 
 saveRDS(map_data, "data/map/processed_map_data.rds")
 st_write(map_data, "data/map/processed_map_data.geojson", delete_dsn = TRUE, quiet = TRUE)
 
-# 2. Generate individual state GeoJSON files
 print("Generating individual state GeoJSON files...")
 unique_states <- na.omit(unique(map_data$STATE)) 
 
@@ -52,8 +46,7 @@ js_color_map <- toJSON(filter_colors, auto_unbox = TRUE)
 dropdown_options <- paste0("<option value='", gsub("[^A-Za-z0-9]", "_", unique_states), "'>", unique_states, "</option>", collapse = "\n")
 
 # 5. Define GitHub Raw URL 
-github_repo_url <- "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/data/map/"
-
+github_repo_url <- "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/map/"
 
 # 6. Generate Single HTML Application
 print("Generating self-contained HTML map file...")
