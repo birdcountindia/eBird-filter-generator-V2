@@ -37,6 +37,8 @@ if(file.exists(logo_path)) {
   logo_base64 <- "" # Failsafe if logo is missing
 }
 
+map_data$FILTER <- trimws(as.character(map_data$FILTER))
+
 # Generate color map
 unique_filters <- na.omit(unique(map_data$FILTER))
 filter_colors <- setNames(rainbow(length(unique_filters)), unique_filters)
