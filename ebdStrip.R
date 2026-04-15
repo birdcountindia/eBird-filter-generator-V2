@@ -1,3 +1,7 @@
+# eBird Record Stripper                       
+# This script pre-processes eBird records file for India shape files to create RDS files for uploading to shiny        
+# This script has to be run before the tool is pushed to Shiny
+
 library (dplyr)
 library(sf)
 library(skimmr)
@@ -6,18 +10,11 @@ library(tictoc)
 library(lubridate)
 library(future.apply)
 
-#################################################################
-#                   eBird Record Stripper                       #
-# This script pre-processes eBird records file and india        # 
-# shape files to create RDS files for uploading to shiny        #
-#################################################################
-
-#eBird data file
+#eBird data file path
 ebd_file_name <- "../ebird-datasets/EBD/ebd_IN_unv_smp_relFeb-2026.txt"
 
 #Name of the India region shape file
 india_shp <- 'India_v162' 
-#state <- 'IN-KL'
 
 filtersheet <- "https://docs.google.com/spreadsheets/d/1vH-Ptjdz6UUAnfoZgi-aqS2YjBcjC3EbuEjB_W4lhL0/"
 
@@ -25,7 +22,7 @@ gs4_auth(email = "alenalex@ncf-india.org")
 ################################################################
 
 #Unzip and read eBird records
-#unzip(paste(ebd_file_name, '.zip', sep='')) #if montly scripts haven't been run yet.
+#unzip(paste(ebd_file_name, '.zip', sep='')) # if montly scripts haven't been run yet.
 ebd <- read.ebd(ebd_file_name)
 preimp <- c("TAXONOMIC.ORDER", "CATEGORY","COMMON.NAME", "SUBSPECIES.COMMON.NAME","OBSERVATION.COUNT", "STATE","STATE.CODE", "COUNTY","COUNTY.CODE", "LATITUDE", "LONGITUDE", "OBSERVATION.DATE", "SAMPLING.EVENT.IDENTIFIER", "GROUP.IDENTIFIER", "DURATION.MINUTES" ,"ALL.SPECIES.REPORTED")
 ebd <- ebd[, preimp]
@@ -65,7 +62,7 @@ ebd_lists     <- ebd |> distinct(GROUP.ID, .keep_all = T) |>
   select(STATE.CODE, COUNTY.CODE,OBSERVATION.DATE, DURATION.MINUTES, 
          LONGITUDE,LATITUDE,GROUP.ID, ALL.SPECIES.REPORTED)
 # At this point, the primary ebd data is no longer needed
-#rm(ebd) #Release memory
+rm(ebd) #Release memory
 
 ebd_lists <- ebd_lists %>%
   mutate(obs_date = as.Date(OBSERVATION.DATE),
@@ -75,12 +72,11 @@ ebd_lists <- ebd_lists %>%
 
 #Open the shape file
 indiamap <- st_read(paste0("data/",india_shp,".geojson"))
-
 indiamap <- indiamap %>%
   rename(POLYGON.ID = id)
 
 #Whenever a new Polygon file is loaded use this block to update the gsheet.
-
+# GSheet Process ----------------------------------------------------------
 # match_regions <- function(indiamap, ebd_states, ebd_districts, target_col = "subregion") {
 #   indiamap$STATE <- NA
 #   indiamap$COUNTY <- NA
@@ -109,25 +105,26 @@ indiamap <- indiamap %>%
 #   sheet = india_shp  
 # )
 
+#  -----------------------------------------------------------------------
+
 ebd_lists_sf <- sf::st_as_sf(ebd_lists, 
                              coords = c("LONGITUDE", "LATITUDE"), crs = 4326)
-
 # Map the CRS
 sf::st_crs(ebd_lists_sf) <- sf::st_crs(indiamap)
 
-ebd_lists_with_filter <- NULL
+ebd_lists_with_polygon <- NULL
 
-# Fix geometries if invalid #maybe unnecessary 
+# Fix geometries if invalid # maybe unnecessary 
 indiamap <- sf::st_make_valid(indiamap)
 ebd_lists_sf <- sf::st_make_valid(ebd_lists_sf)
 
 # Ensure CRS alignment
 sf::st_crs(ebd_lists_sf) <- sf::st_crs(indiamap)
 
-tic("Vectorized Intersection")
+tic("Assigning Checklists to corresponding polygons") # ~3hrs
 sf::sf_use_s2(FALSE)
-ebd_lists_with_filter <- sf::st_intersection(ebd_lists_sf, indiamap["POLYGON.ID"])
-ebd_lists_with_filter <- sf::st_drop_geometry(ebd_lists_with_filter)
+ebd_lists_with_polygon <- sf::st_intersection(ebd_lists_sf, indiamap["POLYGON.ID"])
+ebd_lists_with_polygon <- sf::st_drop_geometry(ebd_lists_with_polygon)
 sf::sf_use_s2(TRUE)
 toc()
 
@@ -137,10 +134,10 @@ ebd_polygons <- data.frame(
   stringsAsFactors = FALSE
 )
 # Strip the list before joining
-ebd_lists_with_filter <- subset(as.data.frame(ebd_lists_with_filter), select = c("GROUP.ID", "POLYGON.ID"))
+ebd_lists_with_polygon <- subset(as.data.frame(ebd_lists_with_polygon), select = c("GROUP.ID", "POLYGON.ID"))
 
 ebd_lists <- ebd_lists %>%
-  left_join(ebd_lists_with_filter, by = "GROUP.ID") %>%
+  left_join(ebd_lists_with_polygon, by = "GROUP.ID") %>%
   mutate(POLYGON.ID = coalesce(POLYGON.ID, 0))
 
 saveRDS(ebd_species,'data/ebd_species.rds')

@@ -128,7 +128,7 @@
 
         // 3. State Management
         var currentLayer = null;
-        var colorMap = {"Haryana":"#FF0000","Karnataka":"#FF2600","Tamil Nadu":"#FF4D00","Rajasthan":"#FF7300","Maharashtra":"#FF9900","Himachal Pradesh":"#FFBF00","Delhi":"#FFE500","Jharkhand":"#F2FF00","Gujarat":"#CCFF00","Bihar":"#A6FF00","Punjab":"#80FF00","Chhattisgarh":"#59FF00","Chandigarh":"#33FF00","Uttarakhand":"#0DFF00","Lakshadweep":"#00FF19","West Bengal":"#00FF40","Sikkim":"#00FF66","Madhya Pradesh":"#00FF8C","Uttar Pradesh":"#00FFB2","Odisha":"#00FFD9","Andaman and Nicobar Islands":"#00FFFF","Arunachal Pradesh":"#00D9FF","Ladakh":"#00B3FF","Meghalaya":"#008CFF","Assam":"#0066FF","Telangana":"#0040FF","Tripura":"#001AFF","Mizoram":"#0D00FF","Manipur":"#3300FF","Nagaland":"#5900FF","Kerala":"#7F00FF","spl_region":"#A600FF","Goa":"#CC00FF","Andhra Pradesh":"#F200FF","TSR-Low":"#FF00E6","TSR-Hills":"#FF00BF","TSR-Campus":"#FF0099","Ernakulam":"#FF0073","Alappuzha":"#FF004D","Jammu and Kashmir":"#FF0026"};
+        var colorMap = {"Haryana":{"Haryana":"#FF0000"},"Karnataka":{"Karnataka":"#FF0000"},"Tamil Nadu":{"Tamil Nadu":"#FF0000"},"Rajasthan":{"Rajasthan":"#FF0000"},"Maharashtra":{"Maharashtra":"#FF0000"},"Himachal Pradesh":{"Himachal Pradesh":"#FF0000"},"Delhi":{"Delhi":"#FF0000"},"Jharkhand":{"Jharkhand":"#FF0000"},"Gujarat":{"Gujarat":"#FF0000"},"Bihar":{"Bihar":"#FF0000"},"Punjab":{"Punjab":"#FF0000"},"Chhattisgarh":{"Chhattisgarh":"#FF0000"},"Chandigarh":{"Chandigarh":"#FF0000"},"Uttarakhand":{"Uttarakhand":"#FF0000"},"Lakshadweep":{"Lakshadweep":"#FF0000"},"West Bengal":{"West Bengal":"#FF0000"},"Sikkim":{"Sikkim":"#FF0000"},"Madhya Pradesh":{"Madhya Pradesh":"#FF0000"},"Uttar Pradesh":{"Uttar Pradesh":"#FF0000"},"Odisha":{"Odisha":"#FF0000"},"Andaman and Nicobar Islands":{"Andaman and Nicobar Islands":"#FF0000"},"Arunachal Pradesh":{"Arunachal Pradesh":"#FF0000"},"Ladakh":{"Ladakh":"#FF0000"},"Meghalaya":{"Meghalaya":"#FF0000"},"Assam":{"Assam":"#FF0000"},"Telangana":{"Telangana":"#FF0000"},"Tripura":{"Tripura":"#FF0000"},"Mizoram":{"Mizoram":"#FF0000"},"Manipur":{"Manipur":"#FF0000"},"Nagaland":{"Nagaland":"#FF0000"},"Kerala":{"Kerala":"#FF0000","TSR-Low":"#FFFF00","TSR-Hills":"#00FF00","TSR-Campus":"#00FFFF","Ernakulam":"#0000FF","Alappuzha":"#FF00FF"},"spl_region":{"spl_region":"#FF0000"},"Goa":{"Goa":"#FF0000"},"Andhra Pradesh":{"Andhra Pradesh":"#FF0000"},"Jammu and Kashmir":{"Jammu and Kashmir":"#FF0000"}};
         var githubBaseUrl = "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/map/";
 
         var opacitySlider = document.getElementById("opacitySlider");
@@ -163,25 +163,30 @@
                     // Draw the Polygons
                     currentLayer = L.geoJSON(data, {
                         style: function(feature) {
-                            // 1. Grab the name and aggressively strip invisible spaces
+                            // 1. Get the exact State and Filter names
+                            var rawState = feature.properties.STATE || "";
+                            var cleanState = String(rawState).trim();
+                            
                             var rawName = feature.properties.FILTER || "";
                             var cleanName = String(rawName).trim();
                             
-                            // 2. Ask the dictionary for the color
-                            var polyColor = colorMap[cleanName];
+                            // 2. Look up the specific dictionary for this state
+                            var stateColors = colorMap[cleanState];
                             
-                            // 3. If it fails, print a debug message to the console!
+                            // 3. Find the filters color inside that states dictionary
+                            var polyColor = stateColors ? stateColors[cleanName] : null;
+                            
                             if (!polyColor) {
-                                console.log("FAILED MATCH! Looking for: [" + cleanName + "]");
-                                console.log("Available Keys: ", Object.keys(colorMap));
-                                polyColor = "#3388ff"; // Fallback blue
+                                console.log("FAILED MATCH! State: [" + cleanState + "] Filter: [" + cleanName + "]");
+                                polyColor = "#3388ff"; 
                             }
+
                             return {
                                 fillColor: polyColor,
-                                fillOpacity: 0.6,
+                                fillOpacity: parseFloat(opacitySlider.value), 
                                 color: "black",
                                 weight: 3,
-                                opacity: 1
+                                opacity: 1 
                             };
                         },
                         onEachFeature: function(feature, layer) {

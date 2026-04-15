@@ -61,6 +61,7 @@ shinyUI <- fluidPage(
            p("Uses eBird data to generate a fortnightly/monthly eBird filter automatically"),
            p("Created and maintained by Praveen J & Alen Alex, Bird Count India",
              a("(@Praveen J)", href = "Email:paintedstork@gmail.com")),
+           p("An interactive visualization of Indian eBird Filters and Polygons can be accessed by clicking",a("here.", href = "https://birdcountindia.github.io/eBird-filter-generator-V2/")),
            p("Last Date of Update. Data: 31 March 2026. Code: 30 April 2026. Filter Configuration: Dynamic - Managed by Bird Count India"))
   ), 
   

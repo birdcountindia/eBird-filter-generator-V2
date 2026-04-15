@@ -5,10 +5,13 @@ library(base64enc)
 source("datapuller.r")
 
 #indiamap is loaded in the previous script if not uncomment this
-# india_shp <- 'India_v162' 
-# indiamap <- st_read(paste0("data/",india_shp,".geojson"))
-# indiamap <- indiamap %>%
-#   rename(POLYGON.ID = id)
+india_shp <- 'India_v162'
+indiamap <- st_read(paste0("data/",india_shp,".geojson"))
+indiamap <- indiamap %>%
+  rename(POLYGON.ID = id)
+
+old_indiamap <- ("data/old_polygons/indiama-editedSQ.shp")
+old_indiamap <- st_read(old_indiamap)
 
 print("--- STARTING MAP PREPARATION ---")
 
@@ -37,23 +40,22 @@ print("Encoding Logo and Color Palette...")
 
 # Convert the PNG logo to a Base64 string so it lives inside the HTML code
 logo_path <- "data/logo/bci.png"
-if(file.exists(logo_path)) {
-  logo_base64 <- dataURI(file = logo_path, mime = "image/png")
-} else {
-  logo_base64 <- "" # Failsafe if logo is missing
+logo_base64 <- dataURI(file = logo_path, mime = "image/png")
+
+# Building Colours
+map_data$FILTER <- trimws(as.character(map_data$FILTER))
+map_data$STATE <- trimws(as.character(map_data$STATE))
+state_filter_colors <- list()
+unique_states <- na.omit(unique(map_data$STATE))
+
+for (st in unique_states) {
+  state_filters <- na.omit(unique(map_data$FILTER[map_data$STATE == st]))
+  raw_colors <- rainbow(length(state_filters))
+  clean_colors <- substr(raw_colors, 1, 7)
+  state_filter_colors[[st]] <- as.list(setNames(clean_colors, state_filters))
 }
 
-# Clean the data and the colors
-map_data$FILTER <- trimws(as.character(map_data$FILTER))
-unique_filters <- na.omit(unique(map_data$FILTER))
-
-# Generate the 6-digit hex colors
-raw_colors <- rainbow(length(unique_filters))
-clean_colors <- substr(raw_colors, 1, 7) 
-
-# THE FIX: Force it into a list before converting to JSON
-filter_colors <- as.list(setNames(clean_colors, unique_filters))
-js_color_map <- toJSON(filter_colors, auto_unbox = TRUE)
+js_color_map <- toJSON(state_filter_colors, auto_unbox = TRUE)
 
 # Generate HTML dropdown options
 dropdown_options <- paste0(
@@ -201,25 +203,30 @@ html_content <- paste0('
                     // Draw the Polygons
                     currentLayer = L.geoJSON(data, {
                         style: function(feature) {
-                            // 1. Grab the name and aggressively strip invisible spaces
+                            // 1. Get the exact State and Filter names
+                            var rawState = feature.properties.STATE || "";
+                            var cleanState = String(rawState).trim();
+                            
                             var rawName = feature.properties.FILTER || "";
                             var cleanName = String(rawName).trim();
                             
-                            // 2. Ask the dictionary for the color
-                            var polyColor = colorMap[cleanName];
+                            // 2. Look up the specific dictionary for this state
+                            var stateColors = colorMap[cleanState];
                             
-                            // 3. If it fails, print a debug message to the console!
+                            // 3. Find the filters color inside that states dictionary
+                            var polyColor = stateColors ? stateColors[cleanName] : null;
+                            
                             if (!polyColor) {
-                                console.log("FAILED MATCH! Looking for: [" + cleanName + "]");
-                                console.log("Available Keys: ", Object.keys(colorMap));
-                                polyColor = "#3388ff"; // Fallback blue
+                                console.log("FAILED MATCH! State: [" + cleanState + "] Filter: [" + cleanName + "]");
+                                polyColor = "#3388ff"; 
                             }
+
                             return {
                                 fillColor: polyColor,
-                                fillOpacity: 0.6,
+                                fillOpacity: parseFloat(opacitySlider.value), 
                                 color: "black",
                                 weight: 3,
-                                opacity: 1
+                                opacity: 1 
                             };
                         },
                         onEachFeature: function(feature, layer) {

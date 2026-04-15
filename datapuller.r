@@ -5,26 +5,21 @@ gs4_auth(email = "alenalex@ncf-india.org")
 
 getPolygonFilters <- function ()
 {
-  config_url <- "https://docs.google.com/spreadsheets/d/1vH-Ptjdz6UUAnfoZgi-aqS2YjBcjC3EbuEjB_W4lhL0/"
-  
+  config_url <- "1vH-Ptjdz6UUAnfoZgi-aqS2YjBcjC3EbuEjB_W4lhL0"
   polygonfilters <- read_sheet(
     ss = config_url, 
     sheet = "PolygonFilters", 
     range = "A:F", 
     col_types = "c"
   )
-  
   polygonfilters <- as.data.frame(polygonfilters)
-  
   polygonfilters <- polygonfilters %>% 
     drop_na(FILTER) %>%
     distinct() 
-  
   polygonfilters$POLYGON.ID <- as.numeric(polygonfilters$POLYGON.ID)
   
   return (polygonfilters)
 }
-
 
 getRecords <- function (state)
 {
