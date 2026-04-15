@@ -4,6 +4,12 @@ library(dplyr)
 library(base64enc) 
 source("datapuller.r")
 
+#indiamap is loaded in the previous script if not uncomment this
+# india_shp <- 'India_v162' 
+# indiamap <- st_read(paste0("data/",india_shp,".geojson"))
+# indiamap <- indiamap %>%
+#   rename(POLYGON.ID = id)
+
 print("--- STARTING MAP PREPARATION ---")
 
 sheet_data <- getPolygonFilters()
@@ -37,16 +43,27 @@ if(file.exists(logo_path)) {
   logo_base64 <- "" # Failsafe if logo is missing
 }
 
+# Clean the data and the colors
 map_data$FILTER <- trimws(as.character(map_data$FILTER))
-
-# Generate color map
 unique_filters <- na.omit(unique(map_data$FILTER))
-filter_colors <- setNames(rainbow(length(unique_filters)), unique_filters)
+
+# Generate the 6-digit hex colors
+raw_colors <- rainbow(length(unique_filters))
+clean_colors <- substr(raw_colors, 1, 7) 
+
+# THE FIX: Force it into a list before converting to JSON
+filter_colors <- as.list(setNames(clean_colors, unique_filters))
 js_color_map <- toJSON(filter_colors, auto_unbox = TRUE)
 
 # Generate HTML dropdown options
-dropdown_options <- paste0("<option value='", gsub("[^A-Za-z0-9]", "_", unique_states), "'>", unique_states, "</option>", collapse = "\n")
-
+dropdown_options <- paste0(
+  "<option value='",
+  gsub("[^A-Za-z0-9]", "_", sort(unique_states)),
+  "'>",
+  sort(unique_states),
+  "</option>",
+  collapse = "\n"
+)
 # 5. Define GitHub Raw URL 
 github_repo_url <- "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/map/"
 
@@ -65,6 +82,9 @@ html_content <- paste0('
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
+      #controls { display: flex; align-items: center; gap: 20px; }
+        .slider-container { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; }
+        
         body { margin: 0; padding: 0; font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         
         /* Ribbon/Header Styling */
@@ -108,7 +128,12 @@ html_content <- paste0('
             <img src="', logo_base64, '" class="logo" alt="BCI Logo" onerror="this.style.display=\\\'none\\\'">
             <h1>eBird India Editor Polygons</h1>
         </div>
-        <div>
+        <div id="controls">
+            <div class="slider-container">
+                <label for="opacitySlider">Fill Opacity:</label>
+                <input type="range" id="opacitySlider" min="0" max="1" step="0.1" value="0.6">
+            </div>
+            
             <select id="stateSelect">
                 <option value="">-- Select a State --</option>
                 ', dropdown_options, '
@@ -144,6 +169,13 @@ html_content <- paste0('
         var colorMap = ', js_color_map, ';
         var githubBaseUrl = "', github_repo_url, '";
 
+        var opacitySlider = document.getElementById("opacitySlider");
+        opacitySlider.addEventListener("input", function(e) {
+            if (currentLayer) {
+                currentLayer.setStyle({ fillOpacity: parseFloat(e.target.value) });
+            }
+        });
+        
         // 4. Dropdown Change Listener (The GitHub Fetch Mechanism)
         document.getElementById("stateSelect").addEventListener("change", function(e) {
             var stateFile = e.target.value;
@@ -169,8 +201,21 @@ html_content <- paste0('
                     // Draw the Polygons
                     currentLayer = L.geoJSON(data, {
                         style: function(feature) {
+                            // 1. Grab the name and aggressively strip invisible spaces
+                            var rawName = feature.properties.FILTER || "";
+                            var cleanName = String(rawName).trim();
+                            
+                            // 2. Ask the dictionary for the color
+                            var polyColor = colorMap[cleanName];
+                            
+                            // 3. If it fails, print a debug message to the console!
+                            if (!polyColor) {
+                                console.log("FAILED MATCH! Looking for: [" + cleanName + "]");
+                                console.log("Available Keys: ", Object.keys(colorMap));
+                                polyColor = "#3388ff"; // Fallback blue
+                            }
                             return {
-                                fillColor: colorMap[feature.properties.FILTER] || "#3388ff",
+                                fillColor: polyColor,
                                 fillOpacity: 0.6,
                                 color: "black",
                                 weight: 3,
