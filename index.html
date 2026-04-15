@@ -120,17 +120,44 @@
             maxZoom: 20
         });
 
-        // Add Toggle Control for Maps
-        L.control.layers({ 
-            "Google Roadmap": roadmap, 
-            "Google Satellite": satellite 
-        }).addTo(map);
+        // --- NEW: Overlay Map Layer for Old Boundaries ---
+        var oldMapLayer = L.layerGroup(); 
 
-        // 3. State Management
+        // Add Toggle Control for Maps
+        L.control.layers(
+            { "Google Roadmap": roadmap, "Google Satellite": satellite },
+            { "Old Boundaries": oldMapLayer } // Adds the toggle box!
+        ).addTo(map);
+
+        // 3. Global Variables
         var currentLayer = null;
         var colorMap = {"Haryana":{"Haryana":"#FF0000"},"Karnataka":{"Karnataka":"#FF0000"},"Tamil Nadu":{"Tamil Nadu":"#FF0000"},"Rajasthan":{"Rajasthan":"#FF0000"},"Maharashtra":{"Maharashtra":"#FF0000"},"Himachal Pradesh":{"Himachal Pradesh":"#FF0000"},"Delhi":{"Delhi":"#FF0000"},"Jharkhand":{"Jharkhand":"#FF0000"},"Gujarat":{"Gujarat":"#FF0000"},"Bihar":{"Bihar":"#FF0000"},"Punjab":{"Punjab":"#FF0000"},"Chhattisgarh":{"Chhattisgarh":"#FF0000"},"Chandigarh":{"Chandigarh":"#FF0000"},"Uttarakhand":{"Uttarakhand":"#FF0000"},"Lakshadweep":{"Lakshadweep":"#FF0000"},"West Bengal":{"West Bengal":"#FF0000"},"Sikkim":{"Sikkim":"#FF0000"},"Madhya Pradesh":{"Madhya Pradesh":"#FF0000"},"Uttar Pradesh":{"Uttar Pradesh":"#FF0000"},"Odisha":{"Odisha":"#FF0000"},"Andaman and Nicobar Islands":{"Andaman and Nicobar Islands":"#FF0000"},"Arunachal Pradesh":{"Arunachal Pradesh":"#FF0000"},"Ladakh":{"Ladakh":"#FF0000"},"Meghalaya":{"Meghalaya":"#FF0000"},"Assam":{"Assam":"#FF0000"},"Telangana":{"Telangana":"#FF0000"},"Tripura":{"Tripura":"#FF0000"},"Mizoram":{"Mizoram":"#FF0000"},"Manipur":{"Manipur":"#FF0000"},"Nagaland":{"Nagaland":"#FF0000"},"Kerala":{"Kerala":"#FF0000","TSR-Low":"#FFFF00","TSR-Hills":"#00FF00","TSR-Campus":"#00FFFF","Ernakulam":"#0000FF","Alappuzha":"#FF00FF"},"spl_region":{"spl_region":"#FF0000"},"Goa":{"Goa":"#FF0000"},"Andhra Pradesh":{"Andhra Pradesh":"#FF0000"},"Jammu and Kashmir":{"Jammu and Kashmir":"#FF0000"}};
         var githubBaseUrl = "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/map/";
 
+        // --- NEW: Fetch and prepare the Old Map ---
+        fetch(githubBaseUrl + "old_map.geojson")
+            .then(res => res.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: {
+                        fillColor: "transparent",
+                        fillOpacity: 0, 
+                        color: "white",
+                        weight: 2,
+                        opacity: 1
+                    },
+                    onEachFeature: function(feature, layer) {
+                        // WE NOW HARDCODE THE EXACT COLUMN NAME: AREA_1
+                        var polyName = feature.properties.AREA_1 || feature.properties.area_1 || "Unknown";
+                        
+                        layer.bindTooltip("Old Polygon: " + polyName, { 
+                            sticky: true,
+                            className: "custom-tooltip"
+                        });
+                    }
+                }).addTo(oldMapLayer);
+            })
+            .catch(err => console.log("Old map geojson not loaded.", err));
         var opacitySlider = document.getElementById("opacitySlider");
         opacitySlider.addEventListener("input", function(e) {
             if (currentLayer) {

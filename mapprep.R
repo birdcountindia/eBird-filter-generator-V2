@@ -10,8 +10,9 @@ indiamap <- st_read(paste0("data/",india_shp,".geojson"))
 indiamap <- indiamap %>%
   rename(POLYGON.ID = id)
 
-old_indiamap <- ("data/old_polygons/indiama-editedSQ.shp")
-old_indiamap <- st_read(old_indiamap)
+
+old_indiamap <- st_read("data/old_polygons/indiama-editedSQ.shp")
+st_write(old_indiamap, "data/map/old_map.geojson", delete_dsn = TRUE, quiet = TRUE)
 
 print("--- STARTING MAP PREPARATION ---")
 
@@ -160,17 +161,44 @@ html_content <- paste0('
             maxZoom: 20
         });
 
-        // Add Toggle Control for Maps
-        L.control.layers({ 
-            "Google Roadmap": roadmap, 
-            "Google Satellite": satellite 
-        }).addTo(map);
+        // --- NEW: Overlay Map Layer for Old Boundaries ---
+        var oldMapLayer = L.layerGroup(); 
 
-        // 3. State Management
+        // Add Toggle Control for Maps
+        L.control.layers(
+            { "Google Roadmap": roadmap, "Google Satellite": satellite },
+            { "Old Boundaries": oldMapLayer } // Adds the toggle box!
+        ).addTo(map);
+
+        // 3. Global Variables
         var currentLayer = null;
         var colorMap = ', js_color_map, ';
         var githubBaseUrl = "', github_repo_url, '";
 
+        // --- NEW: Fetch and prepare the Old Map ---
+        fetch(githubBaseUrl + "old_map.geojson")
+            .then(res => res.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: {
+                        fillColor: "transparent",
+                        fillOpacity: 0, 
+                        color: "white",
+                        weight: 2,
+                        opacity: 1
+                    },
+                    onEachFeature: function(feature, layer) {
+                        // WE NOW HARDCODE THE EXACT COLUMN NAME: AREA_1
+                        var polyName = feature.properties.AREA_1 || feature.properties.area_1 || "Unknown";
+                        
+                        layer.bindTooltip("Old Polygon: " + polyName, { 
+                            sticky: true,
+                            className: "custom-tooltip"
+                        });
+                    }
+                }).addTo(oldMapLayer);
+            })
+            .catch(err => console.log("Old map geojson not loaded.", err));
         var opacitySlider = document.getElementById("opacitySlider");
         opacitySlider.addEventListener("input", function(e) {
             if (currentLayer) {
