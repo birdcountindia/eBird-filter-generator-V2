@@ -5,7 +5,7 @@ library(base64enc)
 source("datapuller.r")
 
 #indiamap is loaded in the previous script if not uncomment this
-india_shp <- 'India_v162'
+india_shp <- 'India_v239'
 indiamap <- st_read(paste0("data/",india_shp,".geojson"))
 indiamap <- indiamap %>%
   rename(POLYGON.ID = id)

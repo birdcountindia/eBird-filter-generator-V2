@@ -14,7 +14,7 @@ library(future.apply)
 ebd_file_name <- "../ebird-datasets/EBD/ebd_IN_unv_smp_relFeb-2026.txt"
 
 #Name of the India region shape file
-india_shp <- 'India_v162' 
+india_shp <- 'India_v239' 
 
 filtersheet <- "https://docs.google.com/spreadsheets/d/1vH-Ptjdz6UUAnfoZgi-aqS2YjBcjC3EbuEjB_W4lhL0/"
 
@@ -75,34 +75,34 @@ indiamap <- st_read(paste0("data/",india_shp,".geojson"))
 indiamap <- indiamap %>%
   rename(POLYGON.ID = id)
 
-#Whenever a new Polygon file is loaded use this block to update the gsheet.
-# GSheet Process ----------------------------------------------------------
+# #Whenever a new Polygon file is loaded use this block to update the gsheet.
+# #GSheet Process ----------------------------------------------------------
 # match_regions <- function(indiamap, ebd_states, ebd_districts, target_col = "subregion") {
 #   indiamap$STATE <- NA
 #   indiamap$COUNTY <- NA
-#   
+# 
 #   clean_states <- na.omit(unique(ebd_states$STATE))
 #   for (st in clean_states) {
 #     match_idx <- grepl(st, indiamap[[target_col]], ignore.case = TRUE)
 #     indiamap$STATE[match_idx] <- st}
-#   
+# 
 #   clean_districts <- na.omit(unique(ebd_districts$COUNTY))
 #   for (dt in clean_districts) {
 #     match_idx <- grepl(dt, indiamap[[target_col]], ignore.case = TRUE)
 #     indiamap$COUNTY[match_idx] <- dt}
-#   
+# 
 #   indiamap$STATE[is.na(indiamap$STATE)] <- "spl_region"
 #   indiamap$COUNTY[is.na(indiamap$COUNTY)] <- "spl_region"
-#   
+# 
 #   return(indiamap)
 # }
 # 
 # indiamap <- match_regions(indiamap, ebd_states, ebd_districts, target_col = "subregion")
 # 
 # sheet_write(
-#   data = sf::st_drop_geometry(indiamap), 
+#   data = sf::st_drop_geometry(indiamap),
 #   ss = filtersheet,
-#   sheet = india_shp  
+#   sheet = india_shp
 # )
 
 #  -----------------------------------------------------------------------
