@@ -17,9 +17,7 @@ ebd_file_name <- "../ebird-datasets/EBD/ebd_IN_unv_smp_relFeb-2026.txt"
 india_shp <- 'India_v239' 
 
 filtersheet <- "https://docs.google.com/spreadsheets/d/1vH-Ptjdz6UUAnfoZgi-aqS2YjBcjC3EbuEjB_W4lhL0/"
-
 gs4_auth(email = "alenalex@ncf-india.org")
-################################################################
 
 #Unzip and read eBird records
 #unzip(paste(ebd_file_name, '.zip', sep='')) # if montly scripts haven't been run yet.
