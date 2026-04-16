@@ -51,7 +51,8 @@ unique_states <- na.omit(unique(map_data$STATE))
 
 for (st in unique_states) {
   state_filters <- na.omit(unique(map_data$FILTER[map_data$STATE == st]))
-  raw_colors <- hcl.colors(n = length(state_filters), palette = "Cividis")
+  raw_colors <- rainbow(length(state_filters))
+  #raw_colors <- hcl.colors(n = length(state_filters), palette = "Cividis") #b-y colour profile
   clean_colors <- substr(raw_colors, 1, 7)
   state_filter_colors[[st]] <- as.list(setNames(clean_colors, state_filters))
 }
