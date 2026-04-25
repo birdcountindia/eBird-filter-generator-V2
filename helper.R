@@ -48,6 +48,12 @@ getMinutes <- function(q, state, filterRegion) {
   print(state)
   print(filterRegion)
   
+  if( (g_current_state != state) && (state != "None") ) {
+    g_records <<- getRecords(state)
+    g_lists <<- getLists(state)
+    g_current_state <<- state
+  }
+  
   m_ebd_lists <- g_lists
   
   # Filter lists by state and filter shape
@@ -77,7 +83,15 @@ generateFilter <- function(state, filterRegion, filterPercentile=90, duration=24
 {
   print("STARTING FILTER GENERATION")
   
+  if( (g_current_state != state) && (state != "None") ) {
+    g_records <<- getRecords(state)
+    g_lists <<- getLists(state)
+    g_current_state <<- state
+  }
+  
   f_ebd_lists <- g_lists
+  f_ebd_records <- g_records
+  
   f_ebd_lists <- getLocationFilteredLists(f_ebd_lists, state, filterRegion)
   
   if(nrow(f_ebd_lists) < 1) return(NULL)
@@ -104,6 +118,8 @@ generateFilter <- function(state, filterRegion, filterPercentile=90, duration=24
   setkey(dt_ebd_records, GROUP.ID)
   setkey(dt_ebd_lists, GROUP.ID)
   f_ebd_records <- as.data.table(dt_ebd_records[dt_ebd_lists, nomatch=0L, on = "GROUP.ID"])  
+  rm(dt_ebd_records, dt_ebd_lists)
+  gc()
   
   if(makeXAs1) {
     f_ebd_records$OBSERVATION.COUNT[f_ebd_records$OBSERVATION.COUNT == "X"] <- "1"
@@ -116,7 +132,7 @@ generateFilter <- function(state, filterRegion, filterPercentile=90, duration=24
   f_ebd_records <- transform(f_ebd_records, Count = as.numeric(as.character(Count)))
   
   filter <- dcast.data.table(f_ebd_records, TOrder ~ Fortnight, value.var = "Count", fun.aggregate = quantile, probs = filterPercentile/100, na.rm = TRUE)
-  all_lists <- dcast.data.table(dt_ebd_lists, 'ALL.SPECIES.REPORTED' ~ Fortnight, value.var = "ALL.SPECIES.REPORTED", fun.aggregate = length)
+  all_lists <- dcast.data.table(as.data.table(f_ebd_lists), 'ALL.SPECIES.REPORTED' ~ Fortnight, value.var = "ALL.SPECIES.REPORTED", fun.aggregate = length)
   
   print(paste("Rows in filter:", nrow(filter)))
 

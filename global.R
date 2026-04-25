@@ -1,13 +1,11 @@
-source("datapuller.r")
+source("datapuller.R")
 
 g_states    <- readRDS('data/ebd_states.rds')
 g_species   <- readRDS('data/ebd_species.rds')
-g_lists     <- readRDS('data/ebd_lists.rds')
 g_districts <- readRDS('data/ebd_districts.rds')
 g_polygons  <- readRDS('data/ebd_polygons.rds')
 
 g_filters <- getPolygonFilters()
-
 # Extract the exact 'FILTER' column to populate the app's dropdown menu
 g_all_filters <- sort(unique(g_filters$FILTER))
 

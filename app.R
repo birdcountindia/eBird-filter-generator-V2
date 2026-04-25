@@ -1,8 +1,8 @@
 library(shiny)
 library(DT)
 
-source("helper.r")
-source("global.r")
+source("helper.R")
+source("global.R")
 
 shinyServer <- function(input, output, session) {
   

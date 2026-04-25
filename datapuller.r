@@ -1,24 +1,38 @@
 library (googlesheets4) 
 library (splitstackshape)
 library (tidyverse)
-gs4_auth(email = "alenalex@ncf-india.org")
+gs4_deauth()
 
-getPolygonFilters <- function ()
-{
+getPolygonFilters <- function(show = NULL) {
+  
   config_url <- "1vH-Ptjdz6UUAnfoZgi-aqS2YjBcjC3EbuEjB_W4lhL0"
+  
   polygonfilters <- read_sheet(
     ss = config_url, 
     sheet = "PolygonFilters", 
-    range = "A:F", 
+    range = "A:I", 
     col_types = "c"
-  )
-  polygonfilters <- as.data.frame(polygonfilters)
-  polygonfilters <- polygonfilters %>% 
-    drop_na(FILTER) %>%
-    distinct() 
-  polygonfilters$POLYGON.ID <- as.numeric(polygonfilters$POLYGON.ID)
+  ) |>
+    dplyr::filter(!is.na(FILTER)) |>
+    dplyr::distinct()
   
-  return (polygonfilters)
+  # Apply optional SHOW filter
+  if (!is.null(show) && show == 1) {
+    polygonfilters <- polygonfilters |>
+      dplyr::filter(SHOW == "1")
+  }
+  
+  polygonfilters <- polygonfilters |>
+    dplyr::mutate(POLYGON.ID = as.numeric(POLYGON.ID)) |>
+    as.data.frame()
+  
+  return(polygonfilters)
+}
+
+getLists <- function(state) {
+  state_code <- unique(g_states$STATE.CODE[g_states$STATE == state])
+  file_path <- paste0("data/ebd_lists_", state_code, ".rds")
+  return(readRDS(file_path))
 }
 
 getRecords <- function (state)

@@ -2,21 +2,20 @@ library(sf)
 library(jsonlite)    
 library(dplyr)
 library(base64enc) 
-source("datapuller.r")
+source("datapuller.R")
 
 #indiamap is loaded in the previous script if not uncomment this
-india_shp <- 'India_v239'
+india_shp <- 'India_v249'
 indiamap <- st_read(paste0("data/",india_shp,".geojson"))
 indiamap <- indiamap %>%
   rename(POLYGON.ID = id)
-
 
 old_indiamap <- st_read("data/old_polygons/indiama-editedSQ.shp")
 st_write(old_indiamap, "data/map/old_map.geojson", delete_dsn = TRUE, quiet = TRUE)
 
 print("--- STARTING MAP PREPARATION ---")
 
-sheet_data <- getPolygonFilters()
+sheet_data <- getPolygonFilters(show=1)
 
 map_data <- indiamap %>%
   left_join(sheet_data, by = "POLYGON.ID")
@@ -58,6 +57,8 @@ for (st in unique_states) {
 }
 
 js_color_map <- toJSON(state_filter_colors, auto_unbox = TRUE)
+writeLines(js_color_map, "data/map/colors.json")
+print("Saved colors.json to data/map/")
 
 # Generate HTML dropdown options
 dropdown_options <- paste0(
@@ -70,6 +71,10 @@ dropdown_options <- paste0(
 )
 # 5. Define GitHub Raw URL 
 github_repo_url <- "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/map/"
+github_json_url <- "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/json/"
+
+g_states <- readRDS('data/ebd_states.rds')
+js_state_codes <- jsonlite::toJSON(na.omit(unique(g_states$STATE.CODE)), auto_unbox = FALSE)
 
 # 6. Generate Single HTML Application
 print("Generating self-contained HTML map file...")
@@ -107,6 +112,12 @@ html_content <- paste0('
         #header-left { display: flex; align-items: center; gap: 15px; }
         #header h1 { font-size: 20px; margin: 0; font-weight: 600; letter-spacing: 0.5px; }
         .logo { height: 45px; border-radius: 4px; background-color: white; padding: 2px;}
+        /* --- NEW: Search & API UI Styling --- */
+        .search-container { display: flex; align-items: center; gap: 8px; margin-right: 15px; border-right: 1px solid #4a637d; padding-right: 15px; }
+        .api-input { padding: 6px; width: 80px; border-radius: 4px; border: 1px solid #bdc3c7; font-size: 13px; }
+        .search-input { padding: 6px; width: 150px; border-radius: 4px; border: 1px solid #bdc3c7; font-size: 13px; }
+        .search-btn { padding: 6px 12px; background-color: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .search-btn:hover { background-color: #2ecc71; }
         
         /* Dropdown Styling */
         #stateSelect {
@@ -133,6 +144,10 @@ html_content <- paste0('
             <h1>eBird India Editor Polygons</h1>
         </div>
         <div id="controls">
+            <div class="search-container">
+                <input type="text" id="checklistInput" class="search-input" placeholder="Checklist ID or URL">
+                <button id="fetchBtn" class="search-btn">Plot Checklist</button>
+            </div>
             <div class="slider-container">
                 <label for="opacitySlider">Fill Opacity:</label>
                 <input type="range" id="opacitySlider" min="0" max="1" step="0.1" value="0.6">
@@ -289,6 +304,69 @@ html_content <- paste0('
                     alert("Could not load map data. Have you pushed the latest geojson files to GitHub yet?");
                 });
         });
+        var checklistInput = document.getElementById("checklistInput");
+        var fetchBtn = document.getElementById("fetchBtn");
+        var checklistMarker = null;
+        
+        // Inject the array of state codes from R
+        var stateCodes = ', js_state_codes, ';
+
+        fetchBtn.addEventListener("click", function() {
+            var rawChecklist = checklistInput.value.trim();
+
+            // Match either S or G identifiers
+            var match = rawChecklist.match(/([S|G]\\d{6,})/i); 
+            if (!match) {
+                alert("Could not find a valid checklist ID (e.g., S12345678) in your input.");
+                return;
+            }
+            var subId = match[1].toUpperCase();
+
+            // Indicate loading state
+            var originalBtnText = fetchBtn.innerText;
+            fetchBtn.innerText = "Searching...";
+
+            var githubJsonUrl = "', github_json_url, '";                 
+                       var fetchPromises = stateCodes.map(code => {
+                         return fetch(githubJsonUrl + code + "_lists.json")
+                         .then(res => res.ok ? res.json() : null)
+                         .then(data => {
+                           if (!data) return null;
+                           return data.find(row => row["SAMPLING.EVENT.IDENTIFIER"] === subId) || null;
+                         })
+                         .catch(err => null);
+                       });
+                       
+                       Promise.all(fetchPromises)
+                       .then(results => {
+                    var foundData = results.find(r => r !== null);
+
+                    if (foundData) {
+                        var lat = foundData.LATITUDE;
+                        var lng = foundData.LONGITUDE;
+
+                        if (checklistMarker) { map.removeLayer(checklistMarker); }
+                        checklistMarker = L.marker([lat, lng]).addTo(map);
+                        
+                        var popupHTML = "<div style=\'font-size: 14px;\'>" +
+                "<b>Checklist:</b> <a href=\'https://ebird.org/checklist/" + subId + "\' target=\'_blank\'>" + subId + "</a><br/>" +
+                "<b>Location:</b> Coordinates from local dataset<br/>" +
+                "</div>";
+                        
+                        checklistMarker.bindPopup(popupHTML).openPopup();
+                        map.setView([lat, lng], 13);
+                    } else {
+                        alert("Checklist " + subId + " not found in the generated dataset.");
+                    }
+                })
+                .catch(err => {
+                    console.error("Search Error:", err);
+                    alert("An error occurred while searching the datasets.");
+                })
+                .finally(() => {
+                    fetchBtn.innerText = originalBtnText; 
+                });
+        });
     </script>
 </body>
 </html>
@@ -297,3 +375,5 @@ html_content <- paste0('
 # Write the final HTML file
 writeLines(html_content, "index.html")
 print("--- MAP PREPARATION COMPLETE ---")
+
+source("git_auto_commit.R")

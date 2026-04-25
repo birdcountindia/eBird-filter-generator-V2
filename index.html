@@ -31,6 +31,12 @@
         #header-left { display: flex; align-items: center; gap: 15px; }
         #header h1 { font-size: 20px; margin: 0; font-weight: 600; letter-spacing: 0.5px; }
         .logo { height: 45px; border-radius: 4px; background-color: white; padding: 2px;}
+        /* --- NEW: Search & API UI Styling --- */
+        .search-container { display: flex; align-items: center; gap: 8px; margin-right: 15px; border-right: 1px solid #4a637d; padding-right: 15px; }
+        .api-input { padding: 6px; width: 80px; border-radius: 4px; border: 1px solid #bdc3c7; font-size: 13px; }
+        .search-input { padding: 6px; width: 150px; border-radius: 4px; border: 1px solid #bdc3c7; font-size: 13px; }
+        .search-btn { padding: 6px 12px; background-color: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .search-btn:hover { background-color: #2ecc71; }
         
         /* Dropdown Styling */
         #stateSelect {
@@ -57,6 +63,10 @@
             <h1>eBird India Editor Polygons</h1>
         </div>
         <div id="controls">
+            <div class="search-container">
+                <input type="text" id="checklistInput" class="search-input" placeholder="Checklist ID or URL">
+                <button id="fetchBtn" class="search-btn">Plot Checklist</button>
+            </div>
             <div class="slider-container">
                 <label for="opacitySlider">Fill Opacity:</label>
                 <input type="range" id="opacitySlider" min="0" max="1" step="0.1" value="0.6">
@@ -69,8 +79,6 @@
 <option value='Arunachal_Pradesh'>Arunachal Pradesh</option>
 <option value='Assam'>Assam</option>
 <option value='Bihar'>Bihar</option>
-<option value='Chandigarh'>Chandigarh</option>
-<option value='Chhattisgarh'>Chhattisgarh</option>
 <option value='Dadra_and_Nagar_Haveli'>Dadra and Nagar Haveli</option>
 <option value='Daman_and_Diu'>Daman and Diu</option>
 <option value='Delhi'>Delhi</option>
@@ -84,7 +92,6 @@
 <option value='Kerala'>Kerala</option>
 <option value='Ladakh'>Ladakh</option>
 <option value='Lakshadweep'>Lakshadweep</option>
-<option value='Madhya_Pradesh'>Madhya Pradesh</option>
 <option value='Maharashtra'>Maharashtra</option>
 <option value='Manipur'>Manipur</option>
 <option value='Meghalaya'>Meghalaya</option>
@@ -95,7 +102,6 @@
 <option value='Punjab'>Punjab</option>
 <option value='Rajasthan'>Rajasthan</option>
 <option value='Sikkim'>Sikkim</option>
-<option value='spl_region'>spl_region</option>
 <option value='Tamil_Nadu'>Tamil Nadu</option>
 <option value='Telangana'>Telangana</option>
 <option value='Tripura'>Tripura</option>
@@ -134,7 +140,7 @@
 
         // 3. Global Variables
         var currentLayer = null;
-        var colorMap = {"Lakshadweep":{"Lakshadweep":"#FF0000"},"Chandigarh":{"Chandigarh":"#FF0000"},"Chhattisgarh":{"Chhattisgarh":"#FF0000"},"Haryana":{"Haryana":"#FF0000"},"Rajasthan":{"Rajasthan":"#FF0000"},"Punjab":{"Punjab":"#FF0000"},"Bihar":{"Bihar":"#FF0000"},"Gujarat":{"Gujarat":"#FF0000"},"Jharkhand":{"Jharkhand":"#FF0000"},"Delhi":{"Delhi":"#FF0000"},"Himachal Pradesh":{"Himachal Pradesh":"#FF0000"},"Maharashtra":{"Maharashtra":"#FF0000"},"Tamil Nadu":{"Tamil Nadu":"#FF0000"},"Karnataka":{"Karnataka":"#FF0000"},"West Bengal":{"West Bengal":"#FF0000"},"Uttar Pradesh":{"Uttar Pradesh":"#FF0000"},"Madhya Pradesh":{"Madhya Pradesh":"#FF0000"},"Sikkim":{"Sikkim":"#FF0000"},"Arunachal Pradesh":{"Arunachal Pradesh":"#FF0000"},"Andaman and Nicobar Islands":{"Andaman and Nicobar Islands":"#FF0000"},"Odisha":{"Odisha":"#FF0000"},"Ladakh":{"Ladakh":"#FF0000"},"Assam":{"Assam":"#FF0000"},"Meghalaya":{"Meghalaya":"#FF0000"},"Nagaland":{"Nagaland":"#FF0000"},"Manipur":{"Manipur":"#FF0000"},"Mizoram":{"Mizoram":"#FF0000"},"Tripura":{"Tripura":"#FF0000"},"Telangana":{"Telangana":"#FF0000"},"Andhra Pradesh":{"Andhra Pradesh":"#FF0000"},"Dadra and Nagar Haveli":{"Dadra and Nagar Haveli":"#FF0000"},"Goa":{"Goa":"#FF0000"},"Puducherry":{"Puducherry":"#FF0000"},"Daman and Diu":{"Daman and Diu":"#FF0000"},"Kerala":{"India--Kerala--Coast (0 to 40m)":"#FF0000","India--Kerala--Foothills and Midlands(40 to 200m and 200 to 600m)":"#FFFF00","India--Kerala--High Ranges(600 to 1200m)":"#00FF00","India--Kerala--Southern and Northern Mountains(Above 1200m)":"#00FFFF","India--Kerala--Thattekad":"#0000FF","India--Kerala--WayanadMinusHighlands":"#FF00FF"},"spl_region":{"spl_region":"#FF0000"},"Jammu and Kashmir":{"Jammu and Kashmir":"#FF0000"},"Uttarakhand":{"Uttarakhand":"#FF0000"}};
+        var colorMap = {"Lakshadweep":{"Not-Assigned":"#FF0000"},"Himachal Pradesh":{"Not-Assigned":"#FF0000","India--Himachal Pradesh--Pong Dam polygon":"#00FFFF"},"Haryana":{"Not-Assigned":"#FF0000","India--Haryana--Sultanpur-Basai-Najafgarh, Bhindawas, Dighal":"#00FFFF"},"West Bengal":{"Not-Assigned":"#FF0000"},"Sikkim":{"Not-Assigned":"#FF0000"},"Tamil Nadu":{"Not-Assigned":"#FF0000"},"Arunachal Pradesh":{"Not-Assigned":"#FF0000"},"Andaman and Nicobar Islands":{"Not-Assigned":"#FF0000"},"Ladakh":{"Not-Assigned":"#FF0000"},"Assam":{"Not-Assigned":"#FF0000"},"Nagaland":{"Not-Assigned":"#FF0000"},"Mizoram":{"Not-Assigned":"#FF0000"},"Andhra Pradesh":{"Not-Assigned":"#FF0000"},"Odisha":{"Not-Assigned":"#FF0000"},"Kerala":{"Pelagic--Kerala":"#FF0000","India--Kerala--Coast (0 to 40m)":"#FFBF00","India--Kerala--Foothills and Midlands(40 to 200m and 200 to 600m)":"#80FF00","India--Kerala--High Ranges(600 to 1200m)":"#00FF40","India--Kerala--Southern and Northern Mountains(Above 1200m)":"#00FFFF","India--Kerala--Thattekad":"#0040FF","India--Kerala--WayanadMinusHighlands":"#8000FF","Alappuzha":"#FF00BF"},"Dadra and Nagar Haveli":{"Not-Assigned":"#FF0000"},"Goa":{"Not-Assigned":"#FF0000"},"Karnataka":{"Not-Assigned":"#FF0000"},"Gujarat":{"Not-Assigned":"#FF0000"},"Puducherry":{"Not-Assigned":"#FF0000"},"Maharashtra":{"Not-Assigned":"#FF0000"},"Daman and Diu":{"Not-Assigned":"#FF0000"},"Rajasthan":{"Not-Assigned":"#FF0000"},"Jammu and Kashmir":{"Not-Assigned":"#FF0000"},"Punjab":{"Not-Assigned":"#FF0000"},"Uttarakhand":{"India--Uttarakhand--Above1000m":"#FF0000","India--Uttarakhand--Below1000m":"#00FF00","India--Uttarakhand--Plains":"#0000FF"},"Meghalaya":{"Not-Assigned":"#FF0000"},"Tripura":{"Not-Assigned":"#FF0000"},"Manipur":{"Not-Assigned":"#FF0000"},"Bihar":{"Not-Assigned":"#FF0000"},"Jharkhand":{"Not-Assigned":"#FF0000"},"Uttar Pradesh":{"Not-Assigned":"#FF0000"},"Delhi":{"Not-Assigned":"#FF0000"},"Telangana":{"Not-Assigned":"#FF0000"}};
         var githubBaseUrl = "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/map/";
 
         // --- NEW: Fetch and prepare the Old Map ---
@@ -248,6 +254,69 @@
                 .catch(err => {
                     console.error("Error loading state data from GitHub:", err);
                     alert("Could not load map data. Have you pushed the latest geojson files to GitHub yet?");
+                });
+        });
+        var checklistInput = document.getElementById("checklistInput");
+        var fetchBtn = document.getElementById("fetchBtn");
+        var checklistMarker = null;
+        
+        // Inject the array of state codes from R
+        var stateCodes = ["IN-SK","IN-KL","IN-LD","IN-LA","IN-MN","IN-GJ","IN-UL","IN-AP","IN-TS","IN-TN","IN-MH","IN-MP","IN-PB","IN-HP","IN-UP","IN-DL","IN-JK","IN-RJ","IN-GA","IN-HR","IN-KA","IN-AS","IN-ML","IN-WB","IN-BR","IN-CH","IN-OR","IN-JH","IN-PY","IN-AN","IN-AR","IN-CT","IN-MZ","IN-DD","IN-NL","IN-TR","IN-DN"];
+
+        fetchBtn.addEventListener("click", function() {
+            var rawChecklist = checklistInput.value.trim();
+
+            // Match either S or G identifiers
+            var match = rawChecklist.match(/([S|G]\d{6,})/i); 
+            if (!match) {
+                alert("Could not find a valid checklist ID (e.g., S12345678) in your input.");
+                return;
+            }
+            var subId = match[1].toUpperCase();
+
+            // Indicate loading state
+            var originalBtnText = fetchBtn.innerText;
+            fetchBtn.innerText = "Searching...";
+
+            var githubJsonUrl = "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/json/";                 
+                       var fetchPromises = stateCodes.map(code => {
+                         return fetch(githubJsonUrl + code + "_lists.json")
+                         .then(res => res.ok ? res.json() : null)
+                         .then(data => {
+                           if (!data) return null;
+                           return data.find(row => row["SAMPLING.EVENT.IDENTIFIER"] === subId) || null;
+                         })
+                         .catch(err => null);
+                       });
+                       
+                       Promise.all(fetchPromises)
+                       .then(results => {
+                    var foundData = results.find(r => r !== null);
+
+                    if (foundData) {
+                        var lat = foundData.LATITUDE;
+                        var lng = foundData.LONGITUDE;
+
+                        if (checklistMarker) { map.removeLayer(checklistMarker); }
+                        checklistMarker = L.marker([lat, lng]).addTo(map);
+                        
+                        var popupHTML = "<div style='font-size: 14px;'>" +
+                "<b>Checklist:</b> <a href='https://ebird.org/checklist/" + subId + "' target='_blank'>" + subId + "</a><br/>" +
+                "<b>Location:</b> Coordinates from local dataset<br/>" +
+                "</div>";
+                        
+                        checklistMarker.bindPopup(popupHTML).openPopup();
+                        map.setView([lat, lng], 13);
+                    } else {
+                        alert("Checklist " + subId + " not found in the generated dataset.");
+                    }
+                })
+                .catch(err => {
+                    console.error("Search Error:", err);
+                    alert("An error occurred while searching the datasets.");
+                })
+                .finally(() => {
+                    fetchBtn.innerText = originalBtnText; 
                 });
         });
     </script>
