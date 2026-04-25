@@ -21,7 +21,7 @@ print(paste("Committing with message:", commit_msg))
 
 # 4. Execute the Git commands
 # Add the specific map folders (prevents accidentally committing unrelated R scripts if you don't want to)
-system("git add data/map/ map/") 
+system("git add .") 
 
 system('git config user.email "alenalexpathisseril@gmail.com"')
 system('git config user.name "AlenAlex3112"')
