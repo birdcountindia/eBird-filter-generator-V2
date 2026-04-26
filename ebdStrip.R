@@ -52,7 +52,7 @@ for (st_code in unique_st_codes) {
   }
 }
 
-rm(checklist_locations, unique_st_codes, special_states, cty_json, st_json, state_data)
+rm(checklist_locations, unique_st_codes, cty_json, st_json, state_data)
 gc()
 
 ebd <- ebd %>%
@@ -60,30 +60,34 @@ ebd <- ebd %>%
   mutate(GROUP.ID = ifelse(is.na(GROUP.IDENTIFIER),SAMPLING.EVENT.IDENTIFIER, GROUP.IDENTIFIER),
          COMMON.NAME = ifelse(CATEGORY == "issf",SUBSPECIES.COMMON.NAME, COMMON.NAME))
 
-filterRecords <- function (state, dat) {
-  print(nrow(dat))  # Print the number of rows in the input data
-  print(state)      # Print the state being processed
-  # Strip unwanted rows from eBird records
-  ebd_records <- dat |>  filter(STATE.CODE == state)
-  # Remove entries from shared lists
-  ebd_records <- ebd_records |>  distinct(GROUP.ID, COMMON.NAME, .keep_all = TRUE)%>%
-    select(TAXONOMIC.ORDER, OBSERVATION.COUNT, GROUP.ID)
-  saveRDS(ebd_records, paste0('data/ebd_records_', state, '.rds'))
-}
-
 #Create state wise datasets
 ebd_states <- ebd |>
   distinct(STATE.CODE, STATE)
 
-#Splitting into state based records
-sapply (ebd_states$STATE.CODE, filterRecords, dat = ebd)
-rm(dat) #Release memory
+#Create district list by removing duplicate district entries
+ebd_districts <- ebd |> distinct(STATE, STATE.CODE, COUNTY.CODE, COUNTY)
+
+# This function saves eBird observations, statewise for small states and district wise for larger states.
+for (st in na.omit(unique(ebd$STATE.CODE))) {
+  st_records <- ebd |> filter(STATE.CODE == st) |>
+    distinct(GROUP.ID, COMMON.NAME, .keep_all = TRUE) |>
+    select(TAXONOMIC.ORDER, OBSERVATION.COUNT, GROUP.ID)
+  
+  if (st %in% special_states) {
+    dists <- unique(ebd_districts$COUNTY.CODE[ebd_districts$STATE.CODE == st])
+    for (dist in dists) {
+      dist_records <- ebd |> filter(COUNTY.CODE == dist) |>
+        distinct(GROUP.ID, COMMON.NAME, .keep_all = TRUE) |>
+        select(TAXONOMIC.ORDER, OBSERVATION.COUNT, GROUP.ID)
+      saveRDS(dist_records, paste0('data/ebd_records_', dist, '.rds'))
+    }
+  } else {
+    saveRDS(st_records, paste0('data/ebd_records_', st, '.rds'))
+  }
+}
 
 #Create species list by removing duplicate species entries
 ebd_species   <- ebd |> distinct(TAXONOMIC.ORDER, COMMON.NAME)
-
-#Create district list by removing duplicate district entries
-ebd_districts <- ebd |> distinct(COUNTY.CODE, COUNTY)
 
 #Create unique lists by removing duplicate lists
 ebd_lists     <- ebd |> distinct(GROUP.ID, .keep_all = T) |> 
@@ -189,16 +193,20 @@ ebd_lists <- ebd_lists %>%
   left_join(ebd_lists_with_polygon, by = "GROUP.ID") %>%
   mutate(POLYGON.ID = coalesce(POLYGON.ID, 0))
 
-filterLists <- function(state, dat) {
-  state_data <- dat |> 
-    filter(STATE.CODE == state) |>
-    select(-STATE.CODE) # Drop state code as it is now redundant in the state file
+# This function saves eBird lists, state wise for small states and district wise for larger states.
+for (st in na.omit(unique(ebd_lists$STATE.CODE))) {
+  st_lists <- ebd_lists |> filter(STATE.CODE == st)
   
-  file_name <- paste0("data/ebd_lists_", state, ".rds")
-  saveRDS(state_data, file_name)
+  if (st %in% special_states) {
+    dists <- unique(ebd_districts$COUNTY.CODE[ebd_districts$STATE.CODE == st])
+    for (dist in dists) {
+      dist_lists <- st_lists |> filter(COUNTY.CODE == dist)
+      saveRDS(dist_lists, paste0('data/ebd_lists_', dist, '.rds'))
+    }
+  } else {
+    saveRDS(st_lists, paste0('data/ebd_lists_', st, '.rds'))
+  }
 }
-
-sapply(ebd_states$STATE.CODE, filterLists, dat = ebd_lists)
 rm(ebd_lists)
 
 saveRDS(ebd_species,'data/ebd_species.rds')

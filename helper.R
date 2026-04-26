@@ -50,10 +50,11 @@ getMinutes <- function(q, state, filterRegion) {
   print(state)
   print(filterRegion)
   
-  if( (g_current_state != state) && (state != "None") ) {
-    g_records <<- getRecords(state)
-    g_lists <<- getLists(state)
+  if( ((g_current_state != state) || (g_current_district != district)) && (state != "None") ) {
+    g_records <<- getRecords(state, district)
+    g_lists <<- getLists(state, district)
     g_current_state <<- state
+    g_current_district <<- district
   }
   
   m_ebd_lists <- g_lists
@@ -85,10 +86,11 @@ generateFilter <- function(state, filterRegion, filterPercentile=90, duration=24
 {
   print("STARTING FILTER GENERATION")
   
-  if( (g_current_state != state) && (state != "None") ) {
-    g_records <<- getRecords(state)
-    g_lists <<- getLists(state)
+  if( ((g_current_state != state) || (g_current_district != district)) && (state != "None") ) {
+    g_records <<- getRecords(state, district)
+    g_lists <<- getLists(state, district)
     g_current_state <<- state
+    g_current_district <<- district
   }
   
   f_ebd_lists <- g_lists

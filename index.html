@@ -109,6 +109,7 @@
 <option value='Uttarakhand'>Uttarakhand</option>
 <option value='West_Bengal'>West Bengal</option>
             </select>
+            <button id="hotspotBtn" class="search-btn" style="display: none; background-color: #f39c12;">Show Hotspots</button>
         </div>
     </div>
 
@@ -321,6 +322,87 @@
                 .finally(() => {
                     fetchBtn.innerText = originalBtnText; 
                 });
+        });
+        
+        // --- NEW: eBird Hotspot API Fetcher ---
+        var hotspotBtn = document.getElementById("hotspotBtn");
+        var hotspotsLayer = L.layerGroup().addTo(map);
+        var ebirdToken = "2u3uuj727h46";
+        var stateCodeMap = {"Sikkim":"IN-SK","Kerala":"IN-KL","Lakshadweep":"IN-LD","Ladakh":"IN-LA","Manipur":"IN-MN","Gujarat":"IN-GJ","Uttarakhand":"IN-UL","Andhra_Pradesh":"IN-AP","Telangana":"IN-TS","Tamil_Nadu":"IN-TN","Maharashtra":"IN-MH","Madhya_Pradesh":"IN-MP","Punjab":"IN-PB","Himachal_Pradesh":"IN-HP","Uttar_Pradesh":"IN-UP","Delhi":"IN-DL","Jammu_and_Kashmir":"IN-JK","Rajasthan":"IN-RJ","Goa":"IN-GA","Haryana":"IN-HR","Karnataka":"IN-KA","Assam":"IN-AS","Meghalaya":"IN-ML","West_Bengal":"IN-WB","Bihar":"IN-BR","Chandigarh":"IN-CH","Odisha":"IN-OR","Jharkhand":"IN-JH","Puducherry":"IN-PY","Andaman_and_Nicobar_Islands":"IN-AN","Arunachal_Pradesh":"IN-AR","Chhattisgarh":"IN-CT","Mizoram":"IN-MZ","Daman_and_Diu":"IN-DD","Nagaland":"IN-NL","Tripura":"IN-TR","Dadra_and_Nagar_Haveli":"IN-DN"};
+        var isHotspotsLoaded = false;
+
+        // Reset the button whenever the user changes the state dropdown
+        document.getElementById("stateSelect").addEventListener("change", function(e) {
+            hotspotsLayer.clearLayers();
+            isHotspotsLoaded = false;
+            hotspotBtn.innerText = "Show Hotspots";
+            hotspotBtn.style.backgroundColor = "#f39c12"; // Orange
+            
+            if (e.target.value) {
+                hotspotBtn.style.display = "inline-block";
+            } else {
+                hotspotBtn.style.display = "none";
+            }
+        });
+
+        hotspotBtn.addEventListener("click", function() {
+            // If already loaded, clicking it again clears the map (Toggle functionality)
+            if (isHotspotsLoaded) {
+                hotspotsLayer.clearLayers();
+                isHotspotsLoaded = false;
+                hotspotBtn.innerText = "Show Hotspots";
+                hotspotBtn.style.backgroundColor = "#f39c12"; 
+                return;
+            }
+
+            var stateFile = document.getElementById("stateSelect").value;
+            var regionCode = stateCodeMap[stateFile];
+
+            if (!regionCode) {
+                alert("Could not find the eBird region code for this state.");
+                return;
+            }
+
+            var originalBtnText = hotspotBtn.innerText;
+            hotspotBtn.innerText = "Loading...";
+
+            fetch("https://api.ebird.org/v2/ref/hotspot/" + regionCode + "?fmt=json", {
+                method: "GET",
+                headers: { "X-eBirdApiToken": ebirdToken }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("API Error: " + response.statusText);
+                return response.json();
+            })
+            .then(data => {
+                hotspotsLayer.clearLayers();
+
+                data.forEach(function(hs) {
+                    var popupHTML = "<div style='font-size: 14px;'>" +
+                                    "<b>Hotspot:</b> <a href='https://ebird.org/hotspot/" + hs.locId + "' target='_blank'>" + hs.locName + "</a>" +
+                                    "</div>";
+
+                    // Use circle markers for performance and to differentiate from checklists
+                    var marker = L.circleMarker([hs.lat, hs.lng], {
+                        radius: 5,
+                        color: "#c0392b",
+                        fillColor: "#e74c3c",
+                        fillOpacity: 0.8,
+                        weight: 1
+                    }).bindPopup(popupHTML);
+
+                    hotspotsLayer.addLayer(marker);
+                });
+
+                isHotspotsLoaded = true;
+                hotspotBtn.innerText = "Hide Hotspots";
+                hotspotBtn.style.backgroundColor = "#e74c3c"; // Turn red to indicate "Hide"
+            })
+            .catch(err => {
+                console.error("Hotspot Fetch Error:", err);
+                alert("Failed to load hotspots. Ensure your API key is valid.");
+                hotspotBtn.innerText = originalBtnText;
+            });
         });
     </script>
 </body>

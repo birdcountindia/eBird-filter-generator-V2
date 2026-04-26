@@ -6,6 +6,21 @@ source("global.R")
 
 shinyServer <- function(input, output, session) {
   
+  output$districtSelector <- renderUI({
+    special_states <- c("Kerala", "Karnataka", "Tamil Nadu", "Maharashtra")
+    
+    if (input$state %in% special_states) {
+      valid_districts <- g_districts$COUNTY[g_districts$STATE == input$state]
+      selectInput("district", "Select District:", choices = sort(na.omit(valid_districts)))
+    } else {
+      NULL 
+    }
+  })
+  
+  current_district <- reactive({
+    if (is.null(input$district)) "None" else input$district
+  })
+  
   observeEvent(input$state, {
     if (input$state == "None") {
       all_regions <- sort(unique(g_filters$FILTER))
@@ -17,12 +32,12 @@ shinyServer <- function(input, output, session) {
     }
   })
   
-output$minutes <- renderText( { 
-  paste ("List duration <= ",
-          getMinutes (input$duration, 'None', input$filterRegion), 
-          " minutes &  percentile of counts at ", input$countPercentile, 
-         sep='')
-})
+  output$minutes <- renderText( { 
+    paste ("List duration <= ",
+           getMinutes (input$duration, input$state, current_district(), input$filterRegion), 
+           " minutes &  percentile of counts at ", input$countPercentile, 
+           sep='')
+  })
 
 output$downloadData <- downloadHandler(
   filename = function() { paste('Filter_',
@@ -30,9 +45,10 @@ output$downloadData <- downloadHandler(
                                 '.csv', sep='') },
   content = function(file) {
     currentfilter<-generateFilter (state = input$state,
+                                   district = current_district(),
                                    filterRegion =  input$filterRegion,
                                    fortnightly = (input$fortnight=='Fortnight'), 
-                                   duration = getMinutes (input$duration, input$state, input$filterRegion),
+                                   duration = getMinutes (input$duration, input$state, current_district(), input$filterRegion),
                                    filterPercentile = input$countPercentile,
                                    makeXAs1 = input$Xas1,
                                    dataView = input$alldata)  
@@ -41,9 +57,10 @@ output$downloadData <- downloadHandler(
 )
 
 output$filter <- renderDT ({currentfilter<-generateFilter (state = input$state,
+                                                           district = current_district(),
                                                     filterRegion =  input$filterRegion,
                                                     fortnightly = (input$fortnight=='Fortnight'), 
-                                                    duration = getMinutes (input$duration, input$state, input$filterRegion),
+                                                    duration = getMinutes (input$duration, input$state, current_district(), input$filterRegion),
                                                     filterPercentile = input$countPercentile,
                                                     makeXAs1 = input$Xas1,
                                                     dataView = input$alldata)
@@ -69,6 +86,8 @@ shinyUI <- fluidPage(
   sidebarPanel(
     width = 3,  
     selectInput("state", "Select State:", choices = c("None", sort(unique(g_states$STATE)))),
+    
+    uiOutput("districtSelector"),
     
     selectInput("filterRegion", "Select Filter Region:", choices = c("None")),
                             

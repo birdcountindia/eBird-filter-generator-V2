@@ -65,6 +65,13 @@ json_files <- list.files("data/json", pattern = "_lists\\.json$")
 search_prefixes <- gsub("_lists\\.json$", "", json_files)
 js_search_codes <- jsonlite::toJSON(search_prefixes, auto_unbox = FALSE)
 
+print("Generating State Code Dictionary for API...")
+g_states <- readRDS('data/ebd_states.rds')
+state_mapping <- g_states %>% select(STATE, STATE.CODE) %>% distinct()
+safe_states <- gsub("[^A-Za-z0-9]", "_", state_mapping$STATE)
+state_code_dict <- setNames(as.list(state_mapping$STATE.CODE), safe_states)
+js_state_codes_map <- jsonlite::toJSON(state_code_dict, auto_unbox = TRUE)
+
 # Generate HTML dropdown options
 dropdown_options <- paste0(
   "<option value='",
@@ -162,6 +169,7 @@ html_content <- paste0('
                 <option value="">-- Select a State --</option>
                 ', dropdown_options, '
             </select>
+            <button id="hotspotBtn" class="search-btn" style="display: none; background-color: #f39c12;">Show Hotspots</button>
         </div>
     </div>
 
@@ -374,6 +382,87 @@ html_content <- paste0('
                 .finally(() => {
                     fetchBtn.innerText = originalBtnText; 
                 });
+        });
+        
+        // --- NEW: eBird Hotspot API Fetcher ---
+        var hotspotBtn = document.getElementById("hotspotBtn");
+        var hotspotsLayer = L.layerGroup().addTo(map);
+        var ebirdToken = "', ebird_api_key, '";
+        var stateCodeMap = ', js_state_codes_map, ';
+        var isHotspotsLoaded = false;
+
+        // Reset the button whenever the user changes the state dropdown
+        document.getElementById("stateSelect").addEventListener("change", function(e) {
+            hotspotsLayer.clearLayers();
+            isHotspotsLoaded = false;
+            hotspotBtn.innerText = "Show Hotspots";
+            hotspotBtn.style.backgroundColor = "#f39c12"; // Orange
+            
+            if (e.target.value) {
+                hotspotBtn.style.display = "inline-block";
+            } else {
+                hotspotBtn.style.display = "none";
+            }
+        });
+
+        hotspotBtn.addEventListener("click", function() {
+            // If already loaded, clicking it again clears the map (Toggle functionality)
+            if (isHotspotsLoaded) {
+                hotspotsLayer.clearLayers();
+                isHotspotsLoaded = false;
+                hotspotBtn.innerText = "Show Hotspots";
+                hotspotBtn.style.backgroundColor = "#f39c12"; 
+                return;
+            }
+
+            var stateFile = document.getElementById("stateSelect").value;
+            var regionCode = stateCodeMap[stateFile];
+
+            if (!regionCode) {
+                alert("Could not find the eBird region code for this state.");
+                return;
+            }
+
+            var originalBtnText = hotspotBtn.innerText;
+            hotspotBtn.innerText = "Loading...";
+
+            fetch("https://api.ebird.org/v2/ref/hotspot/" + regionCode + "?fmt=json", {
+                method: "GET",
+                headers: { "X-eBirdApiToken": ebirdToken }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("API Error: " + response.statusText);
+                return response.json();
+            })
+            .then(data => {
+                hotspotsLayer.clearLayers();
+
+                data.forEach(function(hs) {
+                    var popupHTML = "<div style=\'font-size: 14px;\'>" +
+                                    "<b>Hotspot:</b> <a href=\'https://ebird.org/hotspot/" + hs.locId + "\' target=\'_blank\'>" + hs.locName + "</a>" +
+                                    "</div>";
+
+                    // Use circle markers for performance and to differentiate from checklists
+                    var marker = L.circleMarker([hs.lat, hs.lng], {
+                        radius: 5,
+                        color: "#c0392b",
+                        fillColor: "#e74c3c",
+                        fillOpacity: 0.8,
+                        weight: 1
+                    }).bindPopup(popupHTML);
+
+                    hotspotsLayer.addLayer(marker);
+                });
+
+                isHotspotsLoaded = true;
+                hotspotBtn.innerText = "Hide Hotspots";
+                hotspotBtn.style.backgroundColor = "#e74c3c"; // Turn red to indicate "Hide"
+            })
+            .catch(err => {
+                console.error("Hotspot Fetch Error:", err);
+                alert("Failed to load hotspots. Ensure your API key is valid.");
+                hotspotBtn.innerText = originalBtnText;
+            });
         });
     </script>
 </body>

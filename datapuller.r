@@ -29,18 +29,32 @@ getPolygonFilters <- function(show = NULL) {
   return(polygonfilters)
 }
 
-getLists <- function(state) {
+getLists <- function(state, district = "None") {
   state_code <- unique(g_states$STATE.CODE[g_states$STATE == state])
-  file_path <- paste0("data/ebd_lists_", state_code, ".rds")
-  return(readRDS(file_path))
+  special_states <- c("IN-KL", "IN-KA", "IN-TN", "IN-MH")
+  
+  if (state_code %in% special_states && district != "None") {
+    dist_code <- unique(g_districts$COUNTY.CODE[g_districts$COUNTY == district])
+    file_path <- paste0("data/ebd_lists_", dist_code, ".rds")
+  } else {
+    file_path <- paste0("data/ebd_lists_", state_code, ".rds")
+  }
+  
+  if(file.exists(file_path)) return(readRDS(file_path))
+  return(data.frame()) # Return empty dataframe if file is missing to prevent crashes
 }
 
-getRecords <- function (state)
-{
-  files <- paste0('data/ebd_records_',g_states[g_states$STATE == state,]$STATE.CODE,'.rds')
+getRecords <- function(state, district = "None") {
+  state_code <- unique(g_states$STATE.CODE[g_states$STATE == state])
+  special_states <- c("IN-KL", "IN-KA", "IN-TN", "IN-MH")
   
-  records <- do.call("rbind", lapply(files, FUN = function(file) {
-    readRDS(file)
-  }))  
-  return (records)  
+  if (state_code %in% special_states && district != "None") {
+    dist_code <- unique(g_districts$COUNTY.CODE[g_districts$COUNTY == district])
+    file_path <- paste0('data/ebd_records_', dist_code, '.rds')
+  } else {
+    file_path <- paste0('data/ebd_records_', state_code, '.rds')
+  }
+  
+  if(file.exists(file_path)) return(readRDS(file_path))
+  return(data.frame())
 }
