@@ -15,8 +15,10 @@ getLocationFilteredLists <- function (lists, state, filterRegion) {
   
   if(state != 'None')  
   {
-    lists <- lists[which(lists$STATE.CODE == 
-                           unique(g_states$STATE.CODE[ g_states$STATE==state ])), ]
+    if("STATE.CODE" %in% names(lists)) {
+      lists <- lists[which(lists$STATE.CODE == 
+                             unique(g_states$STATE.CODE[ g_states$STATE==state ])), ]
+    }
     print(paste("StateFiltered", nrow(lists)))  
   }
   

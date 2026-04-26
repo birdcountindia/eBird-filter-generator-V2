@@ -60,6 +60,11 @@ js_color_map <- toJSON(state_filter_colors, auto_unbox = TRUE)
 writeLines(js_color_map, "data/map/colors.json")
 print("Saved colors.json to data/map/")
 
+print("Scanning JSON directory for search indices...")
+json_files <- list.files("data/json", pattern = "_lists\\.json$")
+search_prefixes <- gsub("_lists\\.json$", "", json_files)
+js_search_codes <- jsonlite::toJSON(search_prefixes, auto_unbox = FALSE)
+
 # Generate HTML dropdown options
 dropdown_options <- paste0(
   "<option value='",
@@ -308,8 +313,8 @@ html_content <- paste0('
         var fetchBtn = document.getElementById("fetchBtn");
         var checklistMarker = null;
         
-        // Inject the array of state codes from R
-        var stateCodes = ', js_state_codes, ';
+        // Inject the dynamic list of EVERY file prefix found in the folder
+        var searchCodes = ', js_search_codes, ';
 
         fetchBtn.addEventListener("click", function() {
             var rawChecklist = checklistInput.value.trim();
@@ -326,19 +331,22 @@ html_content <- paste0('
             var originalBtnText = fetchBtn.innerText;
             fetchBtn.innerText = "Searching...";
 
-            var githubJsonUrl = "', github_json_url, '";                 
-                       var fetchPromises = stateCodes.map(code => {
-                         return fetch(githubJsonUrl + code + "_lists.json")
-                         .then(res => res.ok ? res.json() : null)
-                         .then(data => {
-                           if (!data) return null;
-                           return data.find(row => row["SAMPLING.EVENT.IDENTIFIER"] === subId) || null;
-                         })
-                         .catch(err => null);
-                       });
-                       
-                       Promise.all(fetchPromises)
-                       .then(results => {
+            var githubJsonUrl = "', github_json_url, '";
+
+            // Create an array of fetch promises for EVERY file in the folder
+            var fetchPromises = searchCodes.map(code => {
+                return fetch(githubJsonUrl + code + "_lists.json")
+                    .then(res => res.ok ? res.json() : null)
+                    .then(data => {
+                        if (!data) return null;
+                        return data.find(row => row["SAMPLING.EVENT.IDENTIFIER"] === subId) || null;
+                    })
+                    .catch(err => null);
+            });
+
+            // Execute all fetches in parallel
+            Promise.all(fetchPromises)
+                .then(results => {
                     var foundData = results.find(r => r !== null);
 
                     if (foundData) {
@@ -349,9 +357,9 @@ html_content <- paste0('
                         checklistMarker = L.marker([lat, lng]).addTo(map);
                         
                         var popupHTML = "<div style=\'font-size: 14px;\'>" +
-                "<b>Checklist:</b> <a href=\'https://ebird.org/checklist/" + subId + "\' target=\'_blank\'>" + subId + "</a><br/>" +
-                "<b>Location:</b> Coordinates from local dataset<br/>" +
-                "</div>";
+                                        "<b>Checklist:</b> <a href=\'https://ebird.org/checklist/" + subId + "\' target=\'_blank\'>" + subId + "</a><br/>" +
+                                        "<b>Location:</b> Coordinates from local dataset<br/>" +
+                                        "</div>";
                         
                         checklistMarker.bindPopup(popupHTML).openPopup();
                         map.setView([lat, lng], 13);

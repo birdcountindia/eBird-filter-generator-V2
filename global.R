@@ -11,4 +11,5 @@ g_all_filters <- sort(unique(g_filters$FILTER))
 
 firstState  <- g_states$STATE[1]
 g_records   <- getRecords(firstState)
+g_lists     <- getLists(firstState)    
 g_current_state <- firstState
