@@ -30,31 +30,36 @@ getPolygonFilters <- function(show = NULL) {
 }
 
 getLists <- function(state, district = "None") {
-  state_code <- unique(g_states$STATE.CODE[g_states$STATE == state])
+  # The [1] guarantees it only ever takes one value, preventing length > 1 errors
+  state_code <- unique(g_states$STATE.CODE[g_states$STATE == state])[1]
   special_states <- c("IN-KL", "IN-KA", "IN-TN", "IN-MH")
   
-  if (state_code %in% special_states && district != "None") {
-    dist_code <- unique(g_districts$COUNTY.CODE[g_districts$COUNTY == district])
+  if (!is.na(state_code) && state_code %in% special_states && district != "None") {
+    # Match by both DISTRICT and STATE to prevent cross-state duplicate name crashes
+    dist_code <- unique(g_districts$COUNTY.CODE[g_districts$COUNTY == district & g_districts$STATE == state])[1]
     file_path <- paste0("data/ebd_lists_", dist_code, ".rds")
   } else {
     file_path <- paste0("data/ebd_lists_", state_code, ".rds")
   }
   
-  if(file.exists(file_path)) return(readRDS(file_path))
-  return(data.frame()) # Return empty dataframe if file is missing to prevent crashes
+  # Ensure the path isn't NA before checking if it exists
+  if(!is.na(file_path) && file.exists(file_path)) return(readRDS(file_path))
+  
+  return(data.frame()) # Return empty dataframe to prevent downstream crashes
 }
 
 getRecords <- function(state, district = "None") {
-  state_code <- unique(g_states$STATE.CODE[g_states$STATE == state])
+  state_code <- unique(g_states$STATE.CODE[g_states$STATE == state])[1]
   special_states <- c("IN-KL", "IN-KA", "IN-TN", "IN-MH")
   
-  if (state_code %in% special_states && district != "None") {
-    dist_code <- unique(g_districts$COUNTY.CODE[g_districts$COUNTY == district])
+  if (!is.na(state_code) && state_code %in% special_states && district != "None") {
+    dist_code <- unique(g_districts$COUNTY.CODE[g_districts$COUNTY == district & g_districts$STATE == state])[1]
     file_path <- paste0('data/ebd_records_', dist_code, '.rds')
   } else {
     file_path <- paste0('data/ebd_records_', state_code, '.rds')
   }
   
-  if(file.exists(file_path)) return(readRDS(file_path))
+  if(!is.na(file_path) && file.exists(file_path)) return(readRDS(file_path))
+  
   return(data.frame())
 }

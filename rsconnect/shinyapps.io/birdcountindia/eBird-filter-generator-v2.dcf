@@ -5,9 +5,9 @@ account: birdcountindia
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 17229918
-bundleId: 11907628
+bundleId: 11908429
 url: https://birdcountindia.shinyapps.io/eBird-filter-generator-v2/
 version: 1
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: .~lock.ebd_IN_unv_smp_relNov-2024.txt#|.RData|ebdStrip.R|git_auto_commit.R|index.html|mapprep.R|index_files
+ignoredFiles: .RData|ebdStrip.R|git_auto_commit.R|index.html|mapprep.R

@@ -448,7 +448,7 @@ html_content <- paste0('
                     var marker = L.circleMarker([hs.lat, hs.lng], {
                         radius: 5,
                         color: "#c0392b",
-                        fillColor: "#e74c3c",
+                        fillColor: "#00008B",
                         fillOpacity: 0.8,
                         weight: 1
                     }).bindPopup(popupHTML);
