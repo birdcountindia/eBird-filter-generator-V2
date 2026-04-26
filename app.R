@@ -6,6 +6,9 @@ source("global.R")
 
 shinyServer <- function(input, output, session) {
   
+  g_filters <<- getPolygonFilters()
+  g_all_filters <<- sort(unique(g_filters$FILTER))
+  
   output$districtSelector <- renderUI({
     special_states <- c("Kerala", "Karnataka", "Tamil Nadu", "Maharashtra")
     
