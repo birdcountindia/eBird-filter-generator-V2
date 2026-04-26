@@ -260,8 +260,8 @@
         var fetchBtn = document.getElementById("fetchBtn");
         var checklistMarker = null;
         
-        // Inject the array of state codes from R
-        var stateCodes = ["IN-SK","IN-KL","IN-LD","IN-LA","IN-MN","IN-GJ","IN-UL","IN-AP","IN-TS","IN-TN","IN-MH","IN-MP","IN-PB","IN-HP","IN-UP","IN-DL","IN-JK","IN-RJ","IN-GA","IN-HR","IN-KA","IN-AS","IN-ML","IN-WB","IN-BR","IN-CH","IN-OR","IN-JH","IN-PY","IN-AN","IN-AR","IN-CT","IN-MZ","IN-DD","IN-NL","IN-TR","IN-DN"];
+        // Inject the dynamic list of EVERY file prefix found in the folder
+        var searchCodes = ["IN-AN","IN-AP","IN-AR","IN-AS","IN-BR","IN-CH","IN-CT","IN-DD","IN-DL","IN-DN","IN-GA","IN-GJ","IN-HP","IN-HR","IN-JH","IN-JK","IN-KA-BD","IN-KA-BG","IN-KA-BJ","IN-KA-BK","IN-KA-BL","IN-KA-BN","IN-KA-BR","IN-KA-CH","IN-KA-CJ","IN-KA-CK","IN-KA-CT","IN-KA-DA","IN-KA-DH","IN-KA-DK","IN-KA-GA","IN-KA-GU","IN-KA-HS","IN-KA-HV","IN-KA-KD","IN-KA-KL","IN-KA-KP","IN-KA-MA","IN-KA-MY","IN-KA-RA","IN-KA-RM","IN-KA-SH","IN-KA-TU","IN-KA-UD","IN-KA-UK","IN-KA-YD","IN-KL-AL","IN-KL-ER","IN-KL-ID","IN-KL-KL","IN-KL-KN","IN-KL-KS","IN-KL-KT","IN-KL-KZ","IN-KL-MA","IN-KL-PL","IN-KL-PT","IN-KL-TS","IN-KL-TV","IN-KL-WA","IN-LA","IN-LD","IN-MH-AH","IN-MH-AK","IN-MH-AM","IN-MH-AU","IN-MH-BH","IN-MH-BI","IN-MH-BU","IN-MH-CH","IN-MH-DH","IN-MH-GA","IN-MH-GO","IN-MH-HI","IN-MH-JG","IN-MH-JN","IN-MH-KO","IN-MH-LA","IN-MH-MC","IN-MH-MS","IN-MH-NB","IN-MH-ND","IN-MH-NG","IN-MH-NS","IN-MH-OS","IN-MH-PA","IN-MH-PG","IN-MH-PU","IN-MH-RG","IN-MH-RT","IN-MH-SI","IN-MH-SN","IN-MH-SO","IN-MH-ST","IN-MH-TH","IN-MH-WR","IN-MH-WS","IN-MH-YA","IN-ML","IN-MN","IN-MP","IN-MZ","IN-NL","IN-OR","IN-PB","IN-PY","IN-RJ","IN-SK","IN-TN-AR","IN-TN-CH","IN-TN-CO","IN-TN-CP","IN-TN-CU","IN-TN-DH","IN-TN-DI","IN-TN-ER","IN-TN-KA","IN-TN-KC","IN-TN-KK","IN-TN-KR","IN-TN-KS","IN-TN-MA","IN-TN-NG","IN-TN-NI","IN-TN-NM","IN-TN-PE","IN-TN-PU","IN-TN-RA","IN-TN-RN","IN-TN-SA","IN-TN-SI","IN-TN-TC","IN-TN-TE","IN-TN-TH","IN-TN-TI","IN-TN-TJ","IN-TN-TK","IN-TN-TL","IN-TN-TP","IN-TN-TR","IN-TN-TU","IN-TN-TV","IN-TN-VE","IN-TN-VL","IN-TN-VR","IN-TR","IN-TS","IN-UL","IN-UP","IN-WB"];
 
         fetchBtn.addEventListener("click", function() {
             var rawChecklist = checklistInput.value.trim();
@@ -278,19 +278,22 @@
             var originalBtnText = fetchBtn.innerText;
             fetchBtn.innerText = "Searching...";
 
-            var githubJsonUrl = "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/json/";                 
-                       var fetchPromises = stateCodes.map(code => {
-                         return fetch(githubJsonUrl + code + "_lists.json")
-                         .then(res => res.ok ? res.json() : null)
-                         .then(data => {
-                           if (!data) return null;
-                           return data.find(row => row["SAMPLING.EVENT.IDENTIFIER"] === subId) || null;
-                         })
-                         .catch(err => null);
-                       });
-                       
-                       Promise.all(fetchPromises)
-                       .then(results => {
+            var githubJsonUrl = "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/json/";
+
+            // Create an array of fetch promises for EVERY file in the folder
+            var fetchPromises = searchCodes.map(code => {
+                return fetch(githubJsonUrl + code + "_lists.json")
+                    .then(res => res.ok ? res.json() : null)
+                    .then(data => {
+                        if (!data) return null;
+                        return data.find(row => row["SAMPLING.EVENT.IDENTIFIER"] === subId) || null;
+                    })
+                    .catch(err => null);
+            });
+
+            // Execute all fetches in parallel
+            Promise.all(fetchPromises)
+                .then(results => {
                     var foundData = results.find(r => r !== null);
 
                     if (foundData) {
@@ -301,9 +304,9 @@
                         checklistMarker = L.marker([lat, lng]).addTo(map);
                         
                         var popupHTML = "<div style='font-size: 14px;'>" +
-                "<b>Checklist:</b> <a href='https://ebird.org/checklist/" + subId + "' target='_blank'>" + subId + "</a><br/>" +
-                "<b>Location:</b> Coordinates from local dataset<br/>" +
-                "</div>";
+                                        "<b>Checklist:</b> <a href='https://ebird.org/checklist/" + subId + "' target='_blank'>" + subId + "</a><br/>" +
+                                        "<b>Location:</b> Coordinates from local dataset<br/>" +
+                                        "</div>";
                         
                         checklistMarker.bindPopup(popupHTML).openPopup();
                         map.setView([lat, lng], 13);
