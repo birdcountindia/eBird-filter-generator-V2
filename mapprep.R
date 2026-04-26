@@ -42,6 +42,8 @@ print("Encoding Logo and Color Palette...")
 logo_path <- "data/logo/bci.png"
 logo_base64 <- dataURI(file = logo_path, mime = "image/png")
 
+ebird_api_key <- trimws(readLines("data/key.txt", warn = FALSE))
+
 # Building Colours
 map_data$FILTER <- trimws(as.character(map_data$FILTER))
 map_data$STATE <- trimws(as.character(map_data$STATE))
@@ -396,7 +398,7 @@ html_content <- paste0('
             hotspotsLayer.clearLayers();
             isHotspotsLoaded = false;
             hotspotBtn.innerText = "Show Hotspots";
-            hotspotBtn.style.backgroundColor = "#f39c12"; // Orange
+            hotspotBtn.style.backgroundColor = "#00008B"; // Dark Blue
             
             if (e.target.value) {
                 hotspotBtn.style.display = "inline-block";
