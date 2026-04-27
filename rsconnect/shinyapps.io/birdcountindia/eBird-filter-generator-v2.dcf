@@ -5,7 +5,7 @@ account: birdcountindia
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 17229918
-bundleId: 11908816
+bundleId: 11911866
 url: https://birdcountindia.shinyapps.io/eBird-filter-generator-v2/
 version: 1
 asMultiple: FALSE
