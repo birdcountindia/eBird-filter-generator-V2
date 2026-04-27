@@ -50,13 +50,20 @@ map_data$STATE <- trimws(as.character(map_data$STATE))
 state_filter_colors <- list()
 unique_states <- na.omit(unique(map_data$STATE))
 
-for (st in unique_states) {
+set.seed(100)
+
+state_filter_colors <- setNames(lapply(unique_states, function(st) {
+  
   state_filters <- na.omit(unique(map_data$FILTER[map_data$STATE == st]))
-  raw_colors <- rainbow(length(state_filters))
-  #raw_colors <- hcl.colors(n = length(state_filters), palette = "Cividis") #b-y colour profile
+  n_filters <- length(state_filters)
+  if (n_filters == 0) return(list())
+  
+  raw_colors <- hcl.colors(n = n_filters, palette = "Dynamic")
   clean_colors <- substr(raw_colors, 1, 7)
-  state_filter_colors[[st]] <- as.list(setNames(clean_colors, state_filters))
-}
+  shuffled_colors <- sample(clean_colors, size = n_filters)
+  as.list(setNames(shuffled_colors, state_filters))
+  
+}), unique_states)
 
 js_color_map <- toJSON(state_filter_colors, auto_unbox = TRUE)
 writeLines(js_color_map, "data/map/colors.json")
