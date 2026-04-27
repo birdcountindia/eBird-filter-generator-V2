@@ -58,7 +58,7 @@ state_filter_colors <- setNames(lapply(unique_states, function(st) {
   n_filters <- length(state_filters)
   if (n_filters == 0) return(list())
   
-  raw_colors <- hcl.colors(n = n_filters, palette = "Polychrome")
+  raw_colors <- hcl.colors(n = n_filters, palette = "Dark 2")
   clean_colors <- substr(raw_colors, 1, 7)
   shuffled_colors <- sample(clean_colors, size = n_filters)
   as.list(setNames(shuffled_colors, state_filters))
