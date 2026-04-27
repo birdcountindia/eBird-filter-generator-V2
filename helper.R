@@ -174,7 +174,7 @@ generateFilter <- function(state, district, filterRegion, filterPercentile=90, d
   colnames(all_lists)[1] <- "Species"
   filter$Species    <- as.character(filter$Species)
   all_lists$Species <- as.character(all_lists$Species)
-  all_lists$Species[1] <- "No. of Complete Lists"
+  all_lists$Species[1] <- "Number of Complete Lists"
   
   all_lists[] <- lapply(all_lists, as.character)
   filter[] <- lapply(filter, as.character)

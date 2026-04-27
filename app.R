@@ -138,7 +138,7 @@ shinyUI <- fluidPage(
   titlePanel('Filter Generator'),
   fluidRow(
     column(12,
-           p("Uses eBird data to generate a fortnightly/monthly eBird filter automatically"),
+           p("Uses eBird data to generate a fortnightly/monthly eBird filter automatically (Sensistive species data excluded)"),
            p("Created and maintained by Praveen J & Alen Alex, Bird Count India",
              a("(@Praveen J)", href = "Email:paintedstork@gmail.com")),
            p("An interactive visualization of Indian eBird Filters and Polygons can be accessed by clicking",a("here.", href = "https://birdcountindia.github.io/eBird-filter-generator-V2/")),
