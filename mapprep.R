@@ -179,6 +179,12 @@ html_content <- paste0('
                 ', dropdown_options, '
             </select>
             <button id="hotspotBtn" class="search-btn" style="display: none; background-color: #f39c12;">Show Hotspots</button>
+            <div id="secondaryControls" style="display: none; align-items: center; gap: 10px; margin-left: 15px; padding-left: 15px; border-left: 2px solid #bdc3c7;">
+    <select id="secondaryStateSelect" style="padding: 6px; border-radius: 4px;">
+        <option value="">-- Compare State --</option>
+    </select>
+    <button id="secondaryHotspotBtn" class="search-btn" style="background-color: #8e44ad;">Add 2nd Layer</button>
+</div>
         </div>
     </div>
 
@@ -395,6 +401,11 @@ html_content <- paste0('
         
         // --- NEW: eBird Hotspot API Fetcher ---
         var hotspotBtn = document.getElementById("hotspotBtn");
+        var secondaryControls = document.getElementById("secondaryControls");
+var secondaryStateSelect = document.getElementById("secondaryStateSelect");
+var secondaryHotspotBtn = document.getElementById("secondaryHotspotBtn");
+var secondaryHotspotsLayer = L.layerGroup().addTo(map);
+var isSecondaryLoaded = false;
         var hotspotsLayer = L.layerGroup().addTo(map);
         var ebirdToken = "', ebird_api_key, '";
         var stateCodeMap = ', js_state_codes_map, ';
@@ -467,12 +478,106 @@ html_content <- paste0('
                 hotspotBtn.innerText = "Hide Hotspots";
                 hotspotBtn.style.backgroundColor = "#e74c3c"; // Turn red to indicate "Hide"
             })
+            
+           // --- NEW: Reveal and populate secondary controls ---
+                secondaryControls.style.display = "flex";
+                var currentState = document.getElementById("stateSelect").value;
+                
+                // 1. Clear existing options safely
+                secondaryStateSelect.innerHTML = ""; 
+                
+                // 2. Add the default placeholder safely without string nesting
+                var defaultOpt = document.createElement("option");
+                defaultOpt.value = "";
+                defaultOpt.text = "-- Compare State --";
+                secondaryStateSelect.appendChild(defaultOpt);
+
+                // 3. Populate the remaining states
+                Object.keys(stateCodeMap).forEach(function(st) {
+                    if (st !== currentState) {
+                        var opt = document.createElement("option");
+                        opt.value = st;
+                        opt.text = st.replace(/_/g, " "); // Formats "Uttar_Pradesh" as "Uttar Pradesh"
+                        secondaryStateSelect.appendChild(opt);
+                    }
+                });
+                
             .catch(err => {
                 console.error("Hotspot Fetch Error:", err);
                 alert("Failed to load hotspots. Ensure your API key is valid.");
                 hotspotBtn.innerText = originalBtnText;
             });
         });
+   
+   // --- NEW: Secondary Hotspot Logic ---
+        secondaryHotspotBtn.addEventListener("click", function() {
+            // Toggle off if already loaded
+            if (isSecondaryLoaded) {
+                secondaryHotspotsLayer.clearLayers();
+                isSecondaryLoaded = false;
+                secondaryHotspotBtn.innerText = "Add 2nd Layer";
+                secondaryHotspotBtn.style.backgroundColor = "#8e44ad"; 
+                return;
+            }
+
+            var st = secondaryStateSelect.value;
+            if (!st) {
+                alert("Please select a second state to compare.");
+                return;
+            }
+            
+            var regionCode = stateCodeMap[st];
+            var originalBtnText = secondaryHotspotBtn.innerText;
+            secondaryHotspotBtn.innerText = "Loading...";
+
+            fetch("https://api.ebird.org/v2/ref/hotspot/" + regionCode + "?fmt=json", {
+                method: "GET",
+                headers: { "X-eBirdApiToken": ebirdToken }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("API Error");
+                return response.json();
+            })
+            .then(data => {
+                secondaryHotspotsLayer.clearLayers();
+
+                data.forEach(function(hs) {
+                    var popupHTML = "<div style='font-size: 14px;'>" +
+                                    "<b>Secondary Hotspot:</b> <a href='https://ebird.org/hotspot/" + hs.locId + "' target='_blank'>" + hs.locName + "</a>" +
+                                    "</div>";
+
+                    // Use a distinct color (Green) for the secondary layer
+                    var marker = L.circleMarker([hs.lat, hs.lng], {
+                        radius: 5,
+                        color: "#27ae60",
+                        fillColor: "#2ecc71",
+                        fillOpacity: 0.8,
+                        weight: 1
+                    }).bindPopup(popupHTML);
+
+                    secondaryHotspotsLayer.addLayer(marker);
+                });
+
+                isSecondaryLoaded = true;
+                secondaryHotspotBtn.innerText = "Hide 2nd Layer";
+                secondaryHotspotBtn.style.backgroundColor = "#e74c3c";
+            })
+            .catch(err => {
+                console.error("Secondary Fetch Error:", err);
+                alert("Failed to load secondary hotspots.");
+                secondaryHotspotBtn.innerText = originalBtnText;
+            });
+        });
+
+        // Hide secondary controls if primary state is changed
+        document.getElementById("stateSelect").addEventListener("change", function() {
+            secondaryControls.style.display = "none";
+            secondaryHotspotsLayer.clearLayers();
+            isSecondaryLoaded = false;
+            secondaryHotspotBtn.innerText = "Add 2nd Layer";
+            secondaryHotspotBtn.style.backgroundColor = "#8e44ad";
+        });
+        
     </script>
 </body>
 </html>

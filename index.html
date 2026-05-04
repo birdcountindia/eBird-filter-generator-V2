@@ -111,6 +111,12 @@
 <option value='West_Bengal'>West Bengal</option>
             </select>
             <button id="hotspotBtn" class="search-btn" style="display: none; background-color: #f39c12;">Show Hotspots</button>
+            <div id="secondaryControls" style="display: none; align-items: center; gap: 10px; margin-left: 15px; padding-left: 15px; border-left: 2px solid #bdc3c7;">
+    <select id="secondaryStateSelect" style="padding: 6px; border-radius: 4px;">
+        <option value="">-- Compare State --</option>
+    </select>
+    <button id="secondaryHotspotBtn" class="search-btn" style="background-color: #8e44ad;">Add 2nd Layer</button>
+</div>
         </div>
     </div>
 
@@ -142,7 +148,7 @@
 
         // 3. Global Variables
         var currentLayer = null;
-        var colorMap = {"Lakshadweep":{"Not-Assigned":"#C87A8A"},"Himachal Pradesh":{"India--Himachal Pradesh--Lahaul & Spiti":"#0BA388","India--Himachal Pradesh--Solan":"#4FA16B","India--Himachal Pradesh--Bilaspur":"#AF8B52","India--Himachal Pradesh--Sirmaur":"#389CB9","India--Himachal Pradesh--Chamba":"#C578A6","India--Himachal Pradesh--Hamirpur":"#00A2A4","India--Himachal Pradesh--Kangra":"#B77CBB","India--Himachal Pradesh--Kinnaur":"#7092C5","India--Himachal Pradesh--Kullu":"#979445","India--Himachal Pradesh--Mandi":"#9A86C6","India--Himachal Pradesh--Shimla":"#C0826C","India--Himachal Pradesh--Una":"#789B51","India--Himachal Pradesh--Pong Dam polygon":"#C87A8A"},"Haryana":{"Not-Assigned":"#C87A8A","India--Haryana--Sultanpur-Basai-Najafgarh, Bhindawas, Dighal":"#00A396"},"West Bengal":{"Not-Assigned":"#C87A8A"},"Sikkim":{"Not-Assigned":"#C87A8A"},"Tamil Nadu":{"Not-Assigned":"#C87A8A"},"Arunachal Pradesh":{"Not-Assigned":"#C87A8A"},"Andaman and Nicobar Islands":{"Not-Assigned":"#C87A8A"},"Ladakh":{"Not-Assigned":"#C87A8A"},"Assam":{"Not-Assigned":"#C87A8A"},"Nagaland":{"Not-Assigned":"#C87A8A"},"Mizoram":{"Not-Assigned":"#C87A8A"},"Andhra Pradesh":{"Not-Assigned":"#C87A8A"},"Pelagic":{"Not-Assigned":"#C87A8A"},"Odisha":{"Not-Assigned":"#C87A8A"},"Kerala":{"India--Kerala--Offshore":"#C28071","India--Kerala--Palakkad--Gap, Foothills, Walayar, Parambikulam, Malampuzha, Mannarkkad, etc":"#C87992","India--Kerala--Thrissur--Coast, Plains, Kole, KAU etc":"#5A97C1","India--Kerala--Thrissur--Midlands, Vazhani, Peechi-Chimmony, Vazhachal":"#32A27B","India--Kerala--Thrissur--Sholayar, Nelliampathies":"#00A1A8","India--Kerala--Wayanad--Skyislands":"#AB81C2","India--Kerala--Thattekad":"#729C54","India--Kerala--WayanadMinusHighlands":"#9E9246","India--Kerala--Idukki--Chinnar":"#C77C82","India--Kerala--Idukki--Munnar Skyislands":"#BA8561","India--Kerala--Ernakulam--Foothills, Plantations, Midlands etc":"#259EB4","India--Kerala--Idukki--High Ranges":"#399CB9","India--Kerala--Pathanamthitta--Plains, Kallada":"#8E8AC7","India--Kerala--Pathanamthitta--Foothills, Midlands":"#9987C6","India--Kerala--Kottayam--Rural, Highlands, Ghats":"#00A38B","India--Kerala--Kottayam--Vagamon":"#4B99BE","India--Kerala--Kottayam--Urban, Kuttanad, Lake, Vellor, Kumarakom":"#C87A8A","India--Kerala--Thiruvananthapuram--Vellayani":"#7691C6","India--Kerala--Thiruvananthapuram--Coast, Kadinamkulam":"#05A0AE","India--Kerala--Thiruvananthapuram--Agasthyamala, Ponmudi":"#C179AF","India--Kerala--Thiruvananthapuram--Midlands, Foothills, Reservoirs":"#1FA383","India--Kerala--Thiruvananthapuram--Plains":"#AB8D4D","India--Kerala--Kollam--Pandimotta":"#00A2A1","India--Kerala--Kollam--High Ranges":"#00A39A","India--Kerala--Kollam--Midlands, Foothills":"#838DC7","India--Kerala--Kollam--Coast, Plains":"#B27EBE","India--Kerala--Idukki--PTR Skyislands":"#B6875A","India--Kerala--Pathanamthitta--High Ranges":"#C778A2","India--Kerala--Kozhikode--High Ranges":"#00A393","India--Kerala--Kozhikode--Midlands, Foothills, Ponkunnu":"#A284C4","India--Kerala--Kannur--Coast, Plains":"#86984A","India--Kerala--Kozhikode--Coast, Plains":"#6994C4","India--Kerala--Alappuzha (North and West)":"#8E9647","India--Kerala--Ernakulam--Coast, Wetlands, Urban, Rural, etc":"#689E5B","India--Kerala--Kasaragod--Coast, Wetlands":"#B18A53","India--Kerala--Malappuram--Coast, Plains, Lowlands":"#C57E7A","India--Kerala--Palakkad--Pattambi":"#C8789A","India--Kerala--Palakkad--Skyislands":"#969445","India--Kerala--Palakkad--High Ranges of Parambikulam, Siruvani, Silent Valley, Nelliampathies, etc":"#A58F49","India--Kerala--Palakkad--Attapady plataeu":"#50A16A","India--Kerala--Malappuram--Midlands, Foothills":"#5C9F63","India--Kerala--Malappuram--Nilambur High Ranges (north), Karimpuzha":"#B87CBA","India--Kerala--Alappuzha (South and East)":"#7C9A4E","India--Kerala--Kannur--Kottiyur--Aralam, Paithalmala Highlands":"#BD7AB5","India--Kerala--Kannur--Midlands, Foothills":"#C478A9","India--Kerala--Kasaragod--Plains, Foothills":"#42A272","India--Kerala--Kasaragod--Kottanchery, Ranipuram":"#BE8269"},"Dadra and Nagar Haveli":{"Not-Assigned":"#C87A8A"},"Goa":{"Not-Assigned":"#C87A8A"},"Karnataka":{"Not-Assigned":"#C87A8A"},"Gujarat":{"Not-Assigned":"#C87A8A"},"Puducherry":{"Not-Assigned":"#C87A8A"},"Maharashtra":{"Not-Assigned":"#C87A8A"},"Daman and Diu":{"Not-Assigned":"#C87A8A"},"Rajasthan":{"Not-Assigned":"#C87A8A"},"Jammu and Kashmir":{"Not-Assigned":"#C87A8A"},"Punjab":{"Not-Assigned":"#C87A8A"},"Uttarakhand":{"India--Uttarakhand--Above1000m":"#C87A8A","India--Uttarakhand--Below1000m":"#5F96C2","India--Uttarakhand--Plains":"#6B9D59"},"Meghalaya":{"Not-Assigned":"#C87A8A"},"Tripura":{"Not-Assigned":"#C87A8A"},"Manipur":{"Not-Assigned":"#C87A8A"},"Bihar":{"Not-Assigned":"#C87A8A"},"Jharkhand":{"Not-Assigned":"#C87A8A"},"Uttar Pradesh":{"Not-Assigned":"#C87A8A"},"Delhi":{"Not-Assigned":"#C87A8A"},"Telangana":{"Not-Assigned":"#C87A8A"}};
+        var colorMap = {"Lakshadweep":{"Not-Assigned":"#C87A8A"},"Himachal Pradesh":{"India--Himachal Pradesh--Lahaul & Spiti":"#0BA388","India--Himachal Pradesh--Solan":"#4FA16B","India--Himachal Pradesh--Bilaspur":"#AF8B52","India--Himachal Pradesh--Sirmaur":"#389CB9","India--Himachal Pradesh--Chamba":"#C578A6","India--Himachal Pradesh--Hamirpur":"#00A2A4","India--Himachal Pradesh--Kangra":"#B77CBB","India--Himachal Pradesh--Kinnaur":"#7092C5","India--Himachal Pradesh--Kullu":"#979445","India--Himachal Pradesh--Mandi":"#9A86C6","India--Himachal Pradesh--Shimla":"#C0826C","India--Himachal Pradesh--Una":"#789B51","India--Himachal Pradesh--Pong Dam polygon":"#C87A8A"},"Haryana":{"Not-Assigned":"#C87A8A","India--Haryana--Sultanpur-Basai-Najafgarh, Bhindawas, Dighal":"#00A396"},"West Bengal":{"Not-Assigned":"#C87A8A"},"Sikkim":{"Not-Assigned":"#C87A8A"},"Tamil Nadu":{"India--Tamil Nadu--Coimbatore--Plains (dry)":"#7A90C6","India--Tamil Nadu--Erode--Plains":"#11A387","Not-Assigned":"#BF826A","India--Tamil Nadu--Erode--Hills (wet)":"#9189C7","India--Tamil Nadu--Coimbatore--Madukkarai Hills":"#7F9A4D","India--Tamil Nadu--Coimbatore--Hills (west)":"#C8789A","India--Tamil Nadu--Coimbatore--Hills (Anaikatti)":"#C57E7A","India--Tamil Nadu--Coimbatore--Mettupalyam":"#B6875B","India--Tamil Nadu--Erode--Bhavani Sagar Reservoir":"#5F96C2","India--Tamil Nadu--Coimbatore--Nilgiri slope":"#00A2A5","India--Tamil Nadu--Moyar Valley":"#409BBB","India--Tamil Nadu--The Nilgiris--Masinagudi":"#AC8C4E","India--Tamil Nadu--The Nilgiris--Ooty transition":"#39A277","India--Tamil Nadu--The Nilgiris--Ooty Plateau (grassland)":"#909646","India--Tamil Nadu--The Nilgiris--Ooty Plateau (central)":"#6B9D59","India--Tamil Nadu--The Nilgiris--Ooty Plateau (southwest)":"#169FB1","India--Tamil Nadu--The Nilgiris--Ooty Plateau (north)":"#B37EBE","India--Tamil Nadu--The Nilgiris--mid elevations (south)":"#9F9147","India--Tamil Nadu--The Nilgiris--mid elevations (north)":"#00A396","India--Tamil Nadu--The Nilgiris--Gudalur":"#C578A8","India--Tamil Nadu--The Nilgiris--Mudumalai NP":"#A483C4","India--Tamil Nadu--Coimbatore--Coimbatore City":"#55A067","India--Tamil Nadu--Coimbatore--Plains (wet)":"#C87A8A","India--Tamil Nadu--Erode--Hills (dry)":"#BE7AB4"},"Arunachal Pradesh":{"Not-Assigned":"#C87A8A"},"Andaman and Nicobar Islands":{"Not-Assigned":"#C87A8A"},"Ladakh":{"Not-Assigned":"#C87A8A"},"Assam":{"Not-Assigned":"#C87A8A"},"Nagaland":{"Not-Assigned":"#C87A8A"},"Mizoram":{"Not-Assigned":"#C87A8A"},"Andhra Pradesh":{"Not-Assigned":"#C87A8A"},"Pelagic":{"Not-Assigned":"#C87A8A"},"Odisha":{"Not-Assigned":"#C87A8A"},"Kerala":{"India--Kerala--Offshore":"#B87CBA","India--Kerala--Palakkad--Gap, Foothills, Walayar, Parambikulam, Malampuzha, Mannarkkad, etc":"#C87992","India--Kerala--Thrissur--Coast, Plains, Kole, KAU etc":"#00A393","India--Kerala--Thrissur--Midlands, Vazhani, Peechi-Chimmony, Vazhachal":"#C179AF","India--Kerala--Thrissur--Sholayar, Nelliampathies":"#B6875A","India--Kerala--Wayanad--Skyislands":"#C87A8A","India--Kerala--Ernakulam--Thattekad":"#AB8D4D","India--Kerala--WayanadMinusHighlands":"#A284C4","India--Kerala--Idukki--Chinnar":"#42A272","India--Kerala--Idukki--Munnar Skyislands":"#86984A","India--Kerala--Ernakulam--Foothills, Plantations, Midlands etc":"#B27EBE","India--Kerala--Idukki--High Ranges":"#C778A2","India--Kerala--Pathanamthitta--Plains, Kallada":"#C57E7A","India--Kerala--Pathanamthitta--Foothills, Midlands":"#00A1A8","India--Kerala--Kottayam--Rural, Highlands, Ghats":"#BE8269","India--Kerala--Kottayam--Vagamon":"#7C9A4E","India--Kerala--Kottayam--Urban, Kuttanad, Lake, Vellor, Kumarakom":"#00A38B","India--Kerala--Thiruvananthapuram--Vellayani":"#5A97C1","India--Kerala--Thiruvananthapuram--Coast, Kadinamkulam":"#C28071","India--Kerala--Thiruvananthapuram--Agasthyamala, Ponmudi":"#969445","India--Kerala--Thiruvananthapuram--Midlands, Foothills, Reservoirs":"#50A16A","India--Kerala--Thiruvananthapuram--Plains":"#00A39A","India--Kerala--Kollam--Pandimotta":"#729C54","India--Kerala--Kollam--High Ranges":"#8E8AC7","India--Kerala--Kollam--Midlands, Foothills":"#1FA383","India--Kerala--Kollam--Coast, Plains":"#5C9F63","India--Kerala--Idukki--PTR Skyislands":"#32A27B","India--Kerala--Pathanamthitta--High Ranges":"#838DC7","India--Kerala--Kozhikode--High Ranges":"#6994C4","India--Kerala--Kozhikode--Midlands, Foothills, Ponkunnu":"#05A0AE","India--Kerala--Kannur--Coast, Plains":"#A58F49","India--Kerala--Kozhikode--Coast, Plains":"#399CB9","India--Kerala--Alappuzha (North and West)":"#C8789A","India--Kerala--Ernakulam--Coast, Wetlands, Urban, Rural, etc":"#689E5B","India--Kerala--Kasaragod--Coast, Wetlands":"#4B99BE","India--Kerala--Malappuram--Coast, Plains, Lowlands":"#7691C6","India--Kerala--Palakkad--Pattambi":"#9987C6","India--Kerala--Palakkad--Skyislands":"#9E9246","India--Kerala--Palakkad--High Ranges of Parambikulam, Siruvani, Silent Valley, Nelliampathies, etc":"#C478A9","India--Kerala--Palakkad--Attapady plataeu":"#B18A53","India--Kerala--Malappuram--Midlands, Foothills":"#259EB4","India--Kerala--Malappuram--Nilambur High Ranges (north), Karimpuzha":"#BD7AB5","India--Kerala--Alappuzha (South and East)":"#C77C82","India--Kerala--Kannur--Kottiyur--Aralam, Paithalmala Highlands":"#AB81C2","India--Kerala--Kannur--Midlands, Foothills":"#00A2A1","India--Kerala--Kasaragod--Plains, Foothills":"#BA8561","India--Kerala--Kasaragod--Kottanchery, Ranipuram":"#8E9647"},"Dadra and Nagar Haveli":{"Not-Assigned":"#C87A8A"},"Goa":{"Not-Assigned":"#C87A8A"},"Karnataka":{"Not-Assigned":"#C87A8A"},"Gujarat":{"Not-Assigned":"#C87A8A"},"Puducherry":{"Not-Assigned":"#C87A8A"},"Maharashtra":{"Not-Assigned":"#C87A8A"},"Daman and Diu":{"Not-Assigned":"#C87A8A"},"Rajasthan":{"Not-Assigned":"#C87A8A"},"Jammu and Kashmir":{"Not-Assigned":"#C87A8A"},"Punjab":{"Not-Assigned":"#C87A8A"},"Uttarakhand":{"India--Uttarakhand--Tehri Garhwal--mid Himalaya":"#00A1A8","India--Uttarakhand--Tehri Garhwal--high Himalaya":"#5C9F63","India--Uttarakhand--Tehri Garhwal--low Himalaya":"#B18A53","India--Uttarakhand--Uttarkashi--high Himalaya":"#C87992","India--Uttarakhand--Uttarkashi--trans Himalaya":"#C778A2","India--Uttarakhand--Uttarkashi--mid Himalaya":"#C77C82","India--Uttarakhand--Dehradun--Shivaliks (lower)":"#50A16A","India--Uttarakhand--Dehradun--Around Dehradun":"#4B99BE","India--Uttarakhand--Dehradun--Shivaliks (upper)":"#00A38B","India--Uttarakhand--Dehradun--low Himalaya":"#969445","India--Uttarakhand--Dehradun--mid Himalaya":"#00A2A1","India--Uttarakhand--Haridwar--Shivaliks":"#BE8269","India--Uttarakhand--Haridwar--Plains":"#86984A","India--Uttarakhand--Pauri Garhwal--low Himalaya":"#689E5B","India--Uttarakhand--Pauri Garhwal--Shivaliks":"#A284C4","India--Uttarakhand--Pauri Garhwal--Corbett NP (lower)":"#399CB9","India--Uttarakhand--Pauri Garhwal--Corbett NP (upper)":"#C179AF","India--Uttarakhand--Pauri Garhwal--mid Himalaya":"#1FA383","India--Uttarakhand--Rudraprayag--mid Himalaya":"#A58F49","India--Uttarakhand--Rudraprayag--high Himalaya":"#C57E7A","India--Uttarakhand--Bageshwar--mid Himalaya":"#BA8561","India--Uttarakhand--Bageshwar--high Himalaya":"#729C54","India--Uttarakhand--Almora--mid Himalaya":"#C478A9","India--Uttarakhand--Nainital--mid Himalaya":"#00A393","India--Uttarakhand--Nainital--low Himalaya":"#9E9246","India--Uttarakhand--Nainital--Shivaliks (Nandhaur)":"#B87CBA","India--Uttarakhand--Nainital--Plains":"#C28071","India--Uttarakhand--Nainital--Corbett NP (lower)":"#7691C6","India--Uttarakhand--Nainital--Corbett NP (upper)":"#259EB4","India--Uttarakhand--Nainital--Shivaliks (east)":"#838DC7","India--Uttarakhand--Udham Singh Nagar--Plains":"#6994C4","India--Uttarakhand--Udham Singh Nagar--Wetlands and forests":"#7C9A4E","India--Uttarakhand--Chamoli--mid Himalaya":"#42A272","India--Uttarakhand--Chamoli--high Himalaya":"#8E9647","India--Uttarakhand--Chamoli--trans Himalaya":"#9987C6","India--Uttarakhand--Champawat--Shivaliks":"#8E8AC7","India--Uttarakhand--Champawat--low Himalaya":"#5A97C1","India--Uttarakhand--Champawat--mid Himalaya":"#32A27B","India--Uttarakhand--Pittorgarh--mid Himalaya":"#AB81C2","India--Uttarakhand--Pittorgarh--high Himalaya":"#C87A8A","India--Uttarakhand--Dehradun--Around Dehradun Airport":"#BD7AB5","India--Uttarakhand--Dehradun--Around Rishikesh":"#05A0AE","India--Uttarakhand--Dehradun--Yamuna River":"#C8789A","India--Uttarakhand--Udham Singh Nagar--Kosi River":"#00A39A","India--Uttarakhand--Udham Singh Nagar--Wetlands":"#B27EBE","India--Uttarakhand--Nainital--Shivaliks (west)":"#B6875A","India--Uttarakhand--Udham Singh Nagar--Deoha River":"#AB8D4D"},"Meghalaya":{"Not-Assigned":"#C87A8A"},"Tripura":{"Not-Assigned":"#C87A8A"},"Manipur":{"Not-Assigned":"#C87A8A"},"Bihar":{"Not-Assigned":"#C87A8A"},"Jharkhand":{"Not-Assigned":"#C87A8A"},"Uttar Pradesh":{"Not-Assigned":"#C87A8A"},"Delhi":{"Not-Assigned":"#C87A8A"},"Telangana":{"Not-Assigned":"#C87A8A"}};
         var githubBaseUrl = "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/map/";
 
         // --- NEW: Fetch and prepare the Old Map ---
@@ -327,6 +333,11 @@
         
         // --- NEW: eBird Hotspot API Fetcher ---
         var hotspotBtn = document.getElementById("hotspotBtn");
+        var secondaryControls = document.getElementById("secondaryControls");
+var secondaryStateSelect = document.getElementById("secondaryStateSelect");
+var secondaryHotspotBtn = document.getElementById("secondaryHotspotBtn");
+var secondaryHotspotsLayer = L.layerGroup().addTo(map);
+var isSecondaryLoaded = false;
         var hotspotsLayer = L.layerGroup().addTo(map);
         var ebirdToken = "2u3uuj727h46";
         var stateCodeMap = {"Sikkim":"IN-SK","Kerala":"IN-KL","Lakshadweep":"IN-LD","Ladakh":"IN-LA","Manipur":"IN-MN","Gujarat":"IN-GJ","Uttarakhand":"IN-UL","Andhra_Pradesh":"IN-AP","Telangana":"IN-TS","Tamil_Nadu":"IN-TN","Maharashtra":"IN-MH","Madhya_Pradesh":"IN-MP","Punjab":"IN-PB","Himachal_Pradesh":"IN-HP","Uttar_Pradesh":"IN-UP","Delhi":"IN-DL","Jammu_and_Kashmir":"IN-JK","Rajasthan":"IN-RJ","Goa":"IN-GA","Haryana":"IN-HR","Karnataka":"IN-KA","Assam":"IN-AS","Meghalaya":"IN-ML","West_Bengal":"IN-WB","Bihar":"IN-BR","Chandigarh":"IN-CH","Odisha":"IN-OR","Jharkhand":"IN-JH","Puducherry":"IN-PY","Andaman_and_Nicobar_Islands":"IN-AN","Arunachal_Pradesh":"IN-AR","Chhattisgarh":"IN-CT","Mizoram":"IN-MZ","Daman_and_Diu":"IN-DD","Nagaland":"IN-NL","Tripura":"IN-TR","Dadra_and_Nagar_Haveli":"IN-DN"};
@@ -399,12 +410,106 @@
                 hotspotBtn.innerText = "Hide Hotspots";
                 hotspotBtn.style.backgroundColor = "#e74c3c"; // Turn red to indicate "Hide"
             })
+            
+           // --- NEW: Reveal and populate secondary controls ---
+                secondaryControls.style.display = "flex";
+                var currentState = document.getElementById("stateSelect").value;
+                
+                // 1. Clear existing options safely
+                secondaryStateSelect.innerHTML = ""; 
+                
+                // 2. Add the default placeholder safely without string nesting
+                var defaultOpt = document.createElement("option");
+                defaultOpt.value = "";
+                defaultOpt.text = "-- Compare State --";
+                secondaryStateSelect.appendChild(defaultOpt);
+
+                // 3. Populate the remaining states
+                Object.keys(stateCodeMap).forEach(function(st) {
+                    if (st !== currentState) {
+                        var opt = document.createElement("option");
+                        opt.value = st;
+                        opt.text = st.replace(/_/g, " "); // Formats "Uttar_Pradesh" as "Uttar Pradesh"
+                        secondaryStateSelect.appendChild(opt);
+                    }
+                });
+                
             .catch(err => {
                 console.error("Hotspot Fetch Error:", err);
                 alert("Failed to load hotspots. Ensure your API key is valid.");
                 hotspotBtn.innerText = originalBtnText;
             });
         });
+   
+   // --- NEW: Secondary Hotspot Logic ---
+        secondaryHotspotBtn.addEventListener("click", function() {
+            // Toggle off if already loaded
+            if (isSecondaryLoaded) {
+                secondaryHotspotsLayer.clearLayers();
+                isSecondaryLoaded = false;
+                secondaryHotspotBtn.innerText = "Add 2nd Layer";
+                secondaryHotspotBtn.style.backgroundColor = "#8e44ad"; 
+                return;
+            }
+
+            var st = secondaryStateSelect.value;
+            if (!st) {
+                alert("Please select a second state to compare.");
+                return;
+            }
+            
+            var regionCode = stateCodeMap[st];
+            var originalBtnText = secondaryHotspotBtn.innerText;
+            secondaryHotspotBtn.innerText = "Loading...";
+
+            fetch("https://api.ebird.org/v2/ref/hotspot/" + regionCode + "?fmt=json", {
+                method: "GET",
+                headers: { "X-eBirdApiToken": ebirdToken }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("API Error");
+                return response.json();
+            })
+            .then(data => {
+                secondaryHotspotsLayer.clearLayers();
+
+                data.forEach(function(hs) {
+                    var popupHTML = "<div style='font-size: 14px;'>" +
+                                    "<b>Secondary Hotspot:</b> <a href='https://ebird.org/hotspot/" + hs.locId + "' target='_blank'>" + hs.locName + "</a>" +
+                                    "</div>";
+
+                    // Use a distinct color (Green) for the secondary layer
+                    var marker = L.circleMarker([hs.lat, hs.lng], {
+                        radius: 5,
+                        color: "#27ae60",
+                        fillColor: "#2ecc71",
+                        fillOpacity: 0.8,
+                        weight: 1
+                    }).bindPopup(popupHTML);
+
+                    secondaryHotspotsLayer.addLayer(marker);
+                });
+
+                isSecondaryLoaded = true;
+                secondaryHotspotBtn.innerText = "Hide 2nd Layer";
+                secondaryHotspotBtn.style.backgroundColor = "#e74c3c";
+            })
+            .catch(err => {
+                console.error("Secondary Fetch Error:", err);
+                alert("Failed to load secondary hotspots.");
+                secondaryHotspotBtn.innerText = originalBtnText;
+            });
+        });
+
+        // Hide secondary controls if primary state is changed
+        document.getElementById("stateSelect").addEventListener("change", function() {
+            secondaryControls.style.display = "none";
+            secondaryHotspotsLayer.clearLayers();
+            isSecondaryLoaded = false;
+            secondaryHotspotBtn.innerText = "Add 2nd Layer";
+            secondaryHotspotBtn.style.backgroundColor = "#8e44ad";
+        });
+        
     </script>
 </body>
 </html>
