@@ -503,13 +503,18 @@ var isSecondaryLoaded = false;
             });
         });
 
-        // Hide secondary controls if primary state is changed
         document.getElementById("stateSelect").addEventListener("change", function() {
-            secondaryControls.style.display = "none";
-            secondaryHotspotsLayer.clearLayers();
+            if (secondaryControls) {
+                secondaryControls.style.display = "none";
+            }
+            if (secondaryHotspotsLayer) {
+                secondaryHotspotsLayer.clearLayers();
+            }
             isSecondaryLoaded = false;
-            secondaryHotspotBtn.innerText = "Add 2nd Layer";
-            secondaryHotspotBtn.style.backgroundColor = "#8e44ad";
+            if (secondaryHotspotBtn) {
+                secondaryHotspotBtn.innerText = "Add 2nd Layer";
+                secondaryHotspotBtn.style.backgroundColor = "#8e44ad";
+            }
         });
         
     </script>
