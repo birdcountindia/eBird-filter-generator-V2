@@ -474,11 +474,13 @@ var isSecondaryLoaded = false;
                 secondaryHotspotsLayer.clearLayers();
 
                 data.forEach(function(hs) {
-                    var popupHTML = "<div style='font-size: 14px;'>" +
-                                    "<b>Secondary Hotspot:</b> <a href='https://ebird.org/hotspot/" + hs.locId + "' target='_blank'>" + hs.locName + "</a>" +
-                                    "</div>";
+                    
+                    // BULLETPROOF JS TEMPLATE LITERAL (Using Backticks ` )
+                    // Notice there are NO plus signs and NO escaped quotes!
+                    var popupHTML = `<div style="font-size: 14px;">
+                        <b>Secondary Hotspot:</b> <a href="https://ebird.org/hotspot/${hs.locId}" target="_blank">${hs.locName}</a>
+                    </div>`;
 
-                    // Use a distinct color (Green) for the secondary layer
                     var marker = L.circleMarker([hs.lat, hs.lng], {
                         radius: 5,
                         color: "#27ae60",
