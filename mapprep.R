@@ -1,7 +1,7 @@
-library(sf)          
-library(jsonlite)    
+library(sf)
+library(jsonlite)
 library(dplyr)
-library(base64enc) 
+library(base64enc)
 source("datapuller.R")
 
 #indiamap is loaded in the previous script if not uncomment this
@@ -26,7 +26,7 @@ saveRDS(map_data, "data/map/processed_map_data.rds")
 st_write(map_data, "data/map/processed_map_data.geojson", delete_dsn = TRUE, quiet = TRUE)
 
 print("Generating individual state GeoJSON files...")
-unique_states <- na.omit(unique(map_data$STATE)) 
+unique_states <- na.omit(unique(map_data$STATE))
 
 for (st in unique_states) {
   state_data <- map_data %>% filter(STATE == st)
@@ -90,7 +90,7 @@ dropdown_options <- paste0(
   "</option>",
   collapse = "\n"
 )
-# 5. Define GitHub Raw URL 
+# 5. Define GitHub Raw URL
 github_repo_url <- "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/map/"
 github_json_url <- "https://raw.githubusercontent.com/birdcountindia/eBird-filter-generator-V2/main/data/json/"
 
@@ -100,6 +100,9 @@ js_state_codes <- jsonlite::toJSON(na.omit(unique(g_states$STATE.CODE)), auto_un
 # 6. Generate Single HTML Application
 print("Generating self-contained HTML map file...")
 
+# =========================================================================
+# THE HTML INJECTION STRING (All quotes inside are double, or backticks)
+# =========================================================================
 html_content <- paste0('
 <!DOCTYPE html>
 <html lang="en">
@@ -115,44 +118,44 @@ html_content <- paste0('
       #controls { display: flex; align-items: center; gap: 20px; }
         .slider-container { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; }
         
-        body { margin: 0; padding: 0; font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        /* --- UPDATED: Flexbox layout so the header can wrap automatically --- */
+        body { 
+            margin: 0; padding: 0; 
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
         
-        /* Ribbon/Header Styling */
         #header {
-            height: 60px;
-            background-color: #2c3e50; /* Dark slate blue */
+            background-color: #2c3e50;
             color: white;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 20px;
+            padding: 10px 20px; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
             position: relative;
             z-index: 1000;
-        }
-        #header-left { display: flex; align-items: center; gap: 15px; }
-        #header h1 { font-size: 20px; margin: 0; font-weight: 600; letter-spacing: 0.5px; }
-        .logo { height: 45px; border-radius: 4px; background-color: white; padding: 2px;}
-        /* --- NEW: Search & API UI Styling --- */
-        .search-container { display: flex; align-items: center; gap: 8px; margin-right: 15px; border-right: 1px solid #4a637d; padding-right: 15px; }
-        .api-input { padding: 6px; width: 80px; border-radius: 4px; border: 1px solid #bdc3c7; font-size: 13px; }
-        .search-input { padding: 6px; width: 150px; border-radius: 4px; border: 1px solid #bdc3c7; font-size: 13px; }
-        .search-btn { padding: 6px 12px; background-color: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
-        .search-btn:hover { background-color: #2ecc71; }
-        
-        /* Dropdown Styling */
-        #stateSelect {
-            padding: 8px 15px;
-            font-size: 15px;
-            border-radius: 5px;
-            border: 1px solid #bdc3c7;
-            cursor: pointer;
-            background-color: white;
-            color: #333;
-            font-weight: bold;
+            flex-wrap: wrap; /* Allows the header to grow taller if needed */
+            gap: 10px;
         }
         
-        #map { height: calc(100vh - 60px); width: 100%; }
+        #controls { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            flex-wrap: wrap; /* Allows controls to drop to a second line */
+        }
+        
+        .slider-container { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; }
+        /* ... keep your existing search-container, search-input styles here ... */
+        
+        #map { 
+            flex-grow: 1; /* Automatically fills whatever vertical space is left! */
+            width: 100%; 
+        }
         
         .leaflet-popup-content b { color: #2c3e50; }
     </style>
@@ -161,7 +164,7 @@ html_content <- paste0('
 
     <div id="header">
         <div id="header-left">
-            <img src="', logo_base64, '" class="logo" alt="BCI Logo" onerror="this.style.display=\\\'none\\\'">
+            <img src="', logo_base64, '" class="logo" alt="BCI Logo" onerror="this.style.display=\"none\"">
             <h1>eBird India Editor Polygons</h1>
         </div>
         <div id="controls">
@@ -179,12 +182,13 @@ html_content <- paste0('
                 ', dropdown_options, '
             </select>
             <button id="hotspotBtn" class="search-btn" style="display: none; background-color: #f39c12;">Show Hotspots</button>
+            
             <div id="secondaryControls" style="display: none; align-items: center; gap: 10px; margin-left: 15px; padding-left: 15px; border-left: 2px solid #bdc3c7;">
-    <select id="secondaryStateSelect" style="padding: 6px; border-radius: 4px;">
-        <option value="">-- Compare State --</option>
-    </select>
-    <button id="secondaryHotspotBtn" class="search-btn" style="background-color: #8e44ad;">Add 2nd Layer</button>
-</div>
+                <select id="secondaryStateSelect" style="padding: 6px; border-radius: 4px;">
+                    <option value="">-- Compare State --</option>
+                </select>
+                <button id="secondaryHotspotBtn" class="search-btn" style="background-color: #8e44ad;">Add 2nd Layer</button>
+            </div>
         </div>
     </div>
 
@@ -194,7 +198,7 @@ html_content <- paste0('
         // 1. Initialize Map
         var map = L.map("map").setView([20.5937, 78.9629], 5); // Centers on India
 
-        // 2. Add Google Maps Layers (Roadmap & Satellite)
+        // 2. Add Google Maps Layers (Roadmap & Satellite Hybrid)
         var roadmap = L.tileLayer("https://mt1.google.com/vt/lyrs=m&hl=en&gl=in&x={x}&y={y}&z={z}", {
             attribution: "Google Maps",
             maxZoom: 20
@@ -205,13 +209,13 @@ html_content <- paste0('
             maxZoom: 20
         });
 
-        // --- NEW: Overlay Map Layer for Old Boundaries ---
+        // Overlay Map Layer for Old Boundaries
         var oldMapLayer = L.layerGroup(); 
 
         // Add Toggle Control for Maps
         L.control.layers(
             { "Google Roadmap": roadmap, "Google Satellite": satellite },
-            { "Old Boundaries": oldMapLayer } // Adds the toggle box!
+            { "Old Boundaries": oldMapLayer }
         ).addTo(map);
 
         // 3. Global Variables
@@ -219,7 +223,7 @@ html_content <- paste0('
         var colorMap = ', js_color_map, ';
         var githubBaseUrl = "', github_repo_url, '";
 
-        // --- NEW: Fetch and prepare the Old Map ---
+        // Fetch and prepare the Old Map
         fetch(githubBaseUrl + "old_map.geojson")
             .then(res => res.json())
             .then(data => {
@@ -232,9 +236,7 @@ html_content <- paste0('
                         opacity: 1
                     },
                     onEachFeature: function(feature, layer) {
-                        // WE NOW HARDCODE THE EXACT COLUMN NAME: AREA_1
                         var polyName = feature.properties.AREA_1 || feature.properties.area_1 || "Unknown";
-                        
                         layer.bindTooltip("Old Polygon: " + polyName, { 
                             sticky: true,
                             className: "custom-tooltip"
@@ -243,6 +245,7 @@ html_content <- paste0('
                 }).addTo(oldMapLayer);
             })
             .catch(err => console.log("Old map geojson not loaded.", err));
+
         var opacitySlider = document.getElementById("opacitySlider");
         opacitySlider.addEventListener("input", function(e) {
             if (currentLayer) {
@@ -261,7 +264,6 @@ html_content <- paste0('
                 return;
             }
 
-            // Construct GitHub URL
             var url = githubBaseUrl + stateFile + ".geojson";
 
             fetch(url)
@@ -275,21 +277,16 @@ html_content <- paste0('
                     // Draw the Polygons
                     currentLayer = L.geoJSON(data, {
                         style: function(feature) {
-                            // 1. Get the exact State and Filter names
                             var rawState = feature.properties.STATE || "";
                             var cleanState = String(rawState).trim();
                             
                             var rawName = feature.properties.FILTER || "";
                             var cleanName = String(rawName).trim();
                             
-                            // 2. Look up the specific dictionary for this state
                             var stateColors = colorMap[cleanState];
-                            
-                            // 3. Find the filters color inside that states dictionary
                             var polyColor = stateColors ? stateColors[cleanName] : null;
                             
                             if (!polyColor) {
-                                console.log("FAILED MATCH! State: [" + cleanState + "] Filter: [" + cleanName + "]");
                                 polyColor = "#3388ff"; 
                             }
 
@@ -302,29 +299,26 @@ html_content <- paste0('
                             };
                         },
                         onEachFeature: function(feature, layer) {
-                            // Hover Tooltip
                             layer.bindTooltip(feature.properties.FILTER || "Unknown", {
                                 sticky: true,
                                 className: "custom-tooltip"
                             });
 
-                            // Click Popup
-                            // JS Note: When sf writes GeoJSON, columns with dots usually stay with dots
                             var pID = feature.properties["POLYGON.ID"] || feature.properties.POLYGON_ID || "N/A";
                             
-                            var popupContent = "<div style=\\\'font-size: 14px;\\\'>" +
-                                "<b>Polygon Name:</b> " + (feature.properties.POLYGON || "N/A") + "<br/>" +
-                                "<b>Polygon ID:</b> " + pID + "<br/>" +
-                                "<b>Filter:</b> " + (feature.properties.FILTER || "N/A") + "<br/>" +
-                                "<b>State:</b> " + (feature.properties.STATE || "N/A") + "<br/>" +
-                                "<b>District:</b> " + (feature.properties.COUNTY || "N/A") + "<br/>" +
-                                "<b>Owner:</b> " + (feature.properties.OWNER || "N/A") +
-                                "</div>";
+                            // USING TEMPLATE LITERALS FOR POPUP (Safe from R parsing)
+                            var popupContent = `<div style="font-size: 14px;">
+                                <b>Polygon Name:</b> ${feature.properties.POLYGON || "N/A"}<br/>
+                                <b>Polygon ID:</b> ${pID}<br/>
+                                <b>Filter:</b> ${feature.properties.FILTER || "N/A"}<br/>
+                                <b>State:</b> ${feature.properties.STATE || "N/A"}<br/>
+                                <b>District:</b> ${feature.properties.COUNTY || "N/A"}<br/>
+                                <b>Owner:</b> ${feature.properties.OWNER || "N/A"}
+                                </div>`;
                             layer.bindPopup(popupContent);
                         }
                     }).addTo(map);
 
-                    // Zoom to fit the state
                     map.fitBounds(currentLayer.getBounds());
                 })
                 .catch(err => {
@@ -332,17 +326,17 @@ html_content <- paste0('
                     alert("Could not load map data. Have you pushed the latest geojson files to GitHub yet?");
                 });
         });
+
+        // ----------------------------------------------------
+        // CHECKLIST SEARCH LOGIC
+        // ----------------------------------------------------
         var checklistInput = document.getElementById("checklistInput");
         var fetchBtn = document.getElementById("fetchBtn");
         var checklistMarker = null;
-        
-        // Inject the dynamic list of EVERY file prefix found in the folder
         var searchCodes = ', js_search_codes, ';
 
         fetchBtn.addEventListener("click", function() {
             var rawChecklist = checklistInput.value.trim();
-
-            // Match either S or G identifiers
             var match = rawChecklist.match(/([S|G]\\d{6,})/i); 
             if (!match) {
                 alert("Could not find a valid checklist ID (e.g., S12345678) in your input.");
@@ -350,13 +344,10 @@ html_content <- paste0('
             }
             var subId = match[1].toUpperCase();
 
-            // Indicate loading state
             var originalBtnText = fetchBtn.innerText;
             fetchBtn.innerText = "Searching...";
-
             var githubJsonUrl = "', github_json_url, '";
 
-            // Create an array of fetch promises for EVERY file in the folder
             var fetchPromises = searchCodes.map(code => {
                 return fetch(githubJsonUrl + code + "_lists.json")
                     .then(res => res.ok ? res.json() : null)
@@ -367,7 +358,6 @@ html_content <- paste0('
                     .catch(err => null);
             });
 
-            // Execute all fetches in parallel
             Promise.all(fetchPromises)
                 .then(results => {
                     var foundData = results.find(r => r !== null);
@@ -379,10 +369,10 @@ html_content <- paste0('
                         if (checklistMarker) { map.removeLayer(checklistMarker); }
                         checklistMarker = L.marker([lat, lng]).addTo(map);
                         
-                        var popupHTML = "<div style=\'font-size: 14px;\'>" +
-                                        "<b>Checklist:</b> <a href=\'https://ebird.org/checklist/" + subId + "\' target=\'_blank\'>" + subId + "</a><br/>" +
-                                        "<b>Location:</b> Coordinates from local dataset<br/>" +
-                                        "</div>";
+                        var popupHTML = `<div style="font-size: 14px;">
+                            <b>Checklist:</b> <a href="https://ebird.org/checklist/${subId}" target="_blank">${subId}</a><br/>
+                            <b>Location:</b> Coordinates from local dataset<br/>
+                            </div>`;
                         
                         checklistMarker.bindPopup(popupHTML).openPopup();
                         map.setView([lat, lng], 13);
@@ -399,24 +389,27 @@ html_content <- paste0('
                 });
         });
         
-        // --- NEW: eBird Hotspot API Fetcher ---
+        // ----------------------------------------------------
+        // PRIMARY HOTSPOT LOGIC
+        // ----------------------------------------------------
         var hotspotBtn = document.getElementById("hotspotBtn");
-        var secondaryControls = document.getElementById("secondaryControls");
-var secondaryStateSelect = document.getElementById("secondaryStateSelect");
-var secondaryHotspotBtn = document.getElementById("secondaryHotspotBtn");
-var secondaryHotspotsLayer = L.layerGroup().addTo(map);
-var isSecondaryLoaded = false;
         var hotspotsLayer = L.layerGroup().addTo(map);
         var ebirdToken = "', ebird_api_key, '";
         var stateCodeMap = ', js_state_codes_map, ';
         var isHotspotsLoaded = false;
+        
+        var secondaryControls = document.getElementById("secondaryControls");
+        var secondaryStateSelect = document.getElementById("secondaryStateSelect");
+        var secondaryHotspotBtn = document.getElementById("secondaryHotspotBtn");
+        var secondaryHotspotsLayer = L.layerGroup().addTo(map);
+        var isSecondaryLoaded = false;
 
-        // Reset the button whenever the user changes the state dropdown
+        // Reveal the Primary Button when a state is selected
         document.getElementById("stateSelect").addEventListener("change", function(e) {
             hotspotsLayer.clearLayers();
             isHotspotsLoaded = false;
             hotspotBtn.innerText = "Show Hotspots";
-            hotspotBtn.style.backgroundColor = "#00008B"; // Dark Blue
+            hotspotBtn.style.backgroundColor = "#00008B"; 
             
             if (e.target.value) {
                 hotspotBtn.style.display = "inline-block";
@@ -425,8 +418,8 @@ var isSecondaryLoaded = false;
             }
         });
 
+        // Primary Hotspot API Call
         hotspotBtn.addEventListener("click", function() {
-            // If already loaded, clicking it again clears the map (Toggle functionality)
             if (isHotspotsLoaded) {
                 hotspotsLayer.clearLayers();
                 isHotspotsLoaded = false;
@@ -458,11 +451,10 @@ var isSecondaryLoaded = false;
                 hotspotsLayer.clearLayers();
 
                 data.forEach(function(hs) {
-                    var popupHTML = "<div style=\'font-size: 14px;\'>" +
-                                    "<b>Hotspot:</b> <a href=\'https://ebird.org/hotspot/" + hs.locId + "\' target=\'_blank\'>" + hs.locName + "</a>" +
-                                    "</div>";
+                    var popupHTML = `<div style="font-size: 14px;">
+                        <b>Hotspot:</b> <a href="https://ebird.org/hotspot/${hs.locId}" target="_blank">${hs.locName}</a>
+                    </div>`;
 
-                    // Use circle markers for performance and to differentiate from checklists
                     var marker = L.circleMarker([hs.lat, hs.lng], {
                         radius: 5,
                         color: "#c0392b",
@@ -476,42 +468,38 @@ var isSecondaryLoaded = false;
 
                 isHotspotsLoaded = true;
                 hotspotBtn.innerText = "Hide Hotspots";
-                hotspotBtn.style.backgroundColor = "#e74c3c"; // Turn red to indicate "Hide"
-            })
-            
-           // --- NEW: Reveal and populate secondary controls ---
+                hotspotBtn.style.backgroundColor = "#e74c3c"; 
+
+                // Reveal Secondary Controls
                 secondaryControls.style.display = "flex";
                 var currentState = document.getElementById("stateSelect").value;
-                
-                // 1. Clear existing options safely
-                secondaryStateSelect.innerHTML = ""; 
-                
-                // 2. Add the default placeholder safely without string nesting
+                secondaryStateSelect.innerHTML = "";
+
                 var defaultOpt = document.createElement("option");
                 defaultOpt.value = "";
                 defaultOpt.text = "-- Compare State --";
                 secondaryStateSelect.appendChild(defaultOpt);
 
-                // 3. Populate the remaining states
                 Object.keys(stateCodeMap).forEach(function(st) {
                     if (st !== currentState) {
                         var opt = document.createElement("option");
                         opt.value = st;
-                        opt.text = st.replace(/_/g, " "); // Formats "Uttar_Pradesh" as "Uttar Pradesh"
+                        opt.text = st.replace(/_/g, " "); 
                         secondaryStateSelect.appendChild(opt);
                     }
                 });
-                
+            })
             .catch(err => {
                 console.error("Hotspot Fetch Error:", err);
                 alert("Failed to load hotspots. Ensure your API key is valid.");
                 hotspotBtn.innerText = originalBtnText;
             });
         });
-   
-   // --- NEW: Secondary Hotspot Logic ---
+
+        // ----------------------------------------------------
+        // SECONDARY HOTSPOT LOGIC
+        // ----------------------------------------------------
         secondaryHotspotBtn.addEventListener("click", function() {
-            // Toggle off if already loaded
             if (isSecondaryLoaded) {
                 secondaryHotspotsLayer.clearLayers();
                 isSecondaryLoaded = false;
@@ -542,9 +530,6 @@ var isSecondaryLoaded = false;
                 secondaryHotspotsLayer.clearLayers();
 
                 data.forEach(function(hs) {
-                    
-                    // BULLETPROOF JS TEMPLATE LITERAL (Using Backticks ` )
-                    // Notice there are NO plus signs and NO escaped quotes!
                     var popupHTML = `<div style="font-size: 14px;">
                         <b>Secondary Hotspot:</b> <a href="https://ebird.org/hotspot/${hs.locId}" target="_blank">${hs.locName}</a>
                     </div>`;
@@ -571,15 +556,21 @@ var isSecondaryLoaded = false;
             });
         });
 
-        // Hide secondary controls if primary state is changed
+        // Hide secondary controls safely if primary state is changed
         document.getElementById("stateSelect").addEventListener("change", function() {
-            secondaryControls.style.display = "none";
-            secondaryHotspotsLayer.clearLayers();
+            if (secondaryControls) {
+                secondaryControls.style.display = "none";
+            }
+            if (secondaryHotspotsLayer) {
+                secondaryHotspotsLayer.clearLayers();
+            }
             isSecondaryLoaded = false;
-            secondaryHotspotBtn.innerText = "Add 2nd Layer";
-            secondaryHotspotBtn.style.backgroundColor = "#8e44ad";
+            if (secondaryHotspotBtn) {
+                secondaryHotspotBtn.innerText = "Add 2nd Layer";
+                secondaryHotspotBtn.style.backgroundColor = "#8e44ad";
+            }
         });
-        
+
     </script>
 </body>
 </html>
@@ -589,4 +580,4 @@ var isSecondaryLoaded = false;
 writeLines(html_content, "index.html")
 print("--- MAP PREPARATION COMPLETE ---")
 
-source("git_auto_commit.R")
+#source("git_auto_commit.R")
