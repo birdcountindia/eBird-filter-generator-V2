@@ -100,9 +100,6 @@ js_state_codes <- jsonlite::toJSON(na.omit(unique(g_states$STATE.CODE)), auto_un
 # 6. Generate Single HTML Application
 print("Generating self-contained HTML map file...")
 
-# =========================================================================
-# THE HTML INJECTION STRING (All quotes inside are double, or backticks)
-# =========================================================================
 html_content <- paste0('
 <!DOCTYPE html>
 <html lang="en">
@@ -115,10 +112,7 @@ html_content <- paste0('
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-      #controls { display: flex; align-items: center; gap: 20px; }
-        .slider-container { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; }
-        
-        /* --- UPDATED: Flexbox layout so the header can wrap automatically --- */
+        /* --- BULLETPROOF FLEXBOX LAYOUT --- */
         body { 
             margin: 0; padding: 0; 
             font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
@@ -136,26 +130,63 @@ html_content <- paste0('
             justify-content: space-between;
             padding: 10px 20px; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            position: relative;
             z-index: 1000;
-            flex-wrap: wrap; /* Allows the header to grow taller if needed */
-            gap: 10px;
+            flex-shrink: 0; /* Prevents header from squishing */
         }
         
-        #controls { 
+        #header-left { 
             display: flex; 
             align-items: center; 
             gap: 15px; 
-            flex-wrap: wrap; /* Allows controls to drop to a second line */
         }
+        
+        .logo { 
+            height: 45px; 
+            width: auto; /* Fixes the massive banner stretch */
+            border-radius: 4px; 
+            background-color: white; 
+            padding: 2px;
+            object-fit: contain;
+        }
+        
+        #header h1 { font-size: 20px; margin: 0; font-weight: 600; white-space: nowrap; }
+        
+        /* --- TWO-ROW CONTROLS LAYOUT --- */
+        #controls { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-end; 
+            gap: 10px; 
+        }
+        
+        .primary-row { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            flex-wrap: wrap; 
+            justify-content: flex-end;
+        }
+
+        .search-container { display: flex; align-items: center; gap: 8px; border-right: 1px solid #4a637d; padding-right: 15px; }
+        .search-input { padding: 6px; width: 150px; border-radius: 4px; border: 1px solid #bdc3c7; font-size: 13px; }
+        .search-btn { padding: 6px 12px; background-color: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .search-btn:hover { background-color: #2ecc71; }
         
         .slider-container { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; }
-        /* ... keep your existing search-container, search-input styles here ... */
         
-        #map { 
-            flex-grow: 1; /* Automatically fills whatever vertical space is left! */
-            width: 100%; 
+        #stateSelect, #secondaryStateSelect {
+            padding: 8px 15px;
+            font-size: 14px;
+            border-radius: 5px;
+            border: 1px solid #bdc3c7;
+            cursor: pointer;
+            background-color: white;
+            color: #333;
+            font-weight: bold;
         }
+        
+        /* Map fills the rest of the screen automatically */
+        #map { flex-grow: 1; width: 100%; }
         
         .leaflet-popup-content b { color: #2c3e50; }
     </style>
@@ -164,27 +195,32 @@ html_content <- paste0('
 
     <div id="header">
         <div id="header-left">
-            <img src="', logo_base64, '" class="logo" alt="BCI Logo" onerror="this.style.display=\"none\"">
+            <!-- Injecting logo via inline style to prevent R parser breakages -->
+            <img src="', logo_base64, '" class="logo" alt="BCI Logo">
             <h1>eBird India Editor Polygons</h1>
         </div>
         <div id="controls">
-            <div class="search-container">
-                <input type="text" id="checklistInput" class="search-input" placeholder="Checklist ID or URL">
-                <button id="fetchBtn" class="search-btn">Plot Checklist</button>
-            </div>
-            <div class="slider-container">
-                <label for="opacitySlider">Fill Opacity:</label>
-                <input type="range" id="opacitySlider" min="0" max="1" step="0.1" value="0.6">
+            <!-- Row 1: Primary Controls -->
+            <div class="primary-row">
+                <div class="search-container">
+                    <input type="text" id="checklistInput" class="search-input" placeholder="Checklist ID or URL">
+                    <button id="fetchBtn" class="search-btn">Plot Checklist</button>
+                </div>
+                <div class="slider-container">
+                    <label for="opacitySlider">Fill Opacity:</label>
+                    <input type="range" id="opacitySlider" min="0" max="1" step="0.1" value="0.6">
+                </div>
+                
+                <select id="stateSelect">
+                    <option value="">-- Select a State --</option>
+                    ', dropdown_options, '
+                </select>
+                <button id="hotspotBtn" class="search-btn" style="display: none; background-color: #f39c12;">Show Hotspots</button>
             </div>
             
-            <select id="stateSelect">
-                <option value="">-- Select a State --</option>
-                ', dropdown_options, '
-            </select>
-            <button id="hotspotBtn" class="search-btn" style="display: none; background-color: #f39c12;">Show Hotspots</button>
-            
-            <div id="secondaryControls" style="display: none; align-items: center; gap: 10px; margin-left: 15px; padding-left: 15px; border-left: 2px solid #bdc3c7;">
-                <select id="secondaryStateSelect" style="padding: 6px; border-radius: 4px;">
+            <!-- Row 2: Secondary Controls -->
+            <div id="secondaryControls" style="display: none; align-items: center; gap: 10px;">
+                <select id="secondaryStateSelect">
                     <option value="">-- Compare State --</option>
                 </select>
                 <button id="secondaryHotspotBtn" class="search-btn" style="background-color: #8e44ad;">Add 2nd Layer</button>
@@ -196,9 +232,9 @@ html_content <- paste0('
 
     <script>
         // 1. Initialize Map
-        var map = L.map("map").setView([20.5937, 78.9629], 5); // Centers on India
+        var map = L.map("map").setView([20.5937, 78.9629], 5);
 
-        // 2. Add Google Maps Layers (Roadmap & Satellite Hybrid)
+        // 2. Add Google Maps Layers
         var roadmap = L.tileLayer("https://mt1.google.com/vt/lyrs=m&hl=en&gl=in&x={x}&y={y}&z={z}", {
             attribution: "Google Maps",
             maxZoom: 20
@@ -209,10 +245,8 @@ html_content <- paste0('
             maxZoom: 20
         });
 
-        // Overlay Map Layer for Old Boundaries
         var oldMapLayer = L.layerGroup(); 
 
-        // Add Toggle Control for Maps
         L.control.layers(
             { "Google Roadmap": roadmap, "Google Satellite": satellite },
             { "Old Boundaries": oldMapLayer }
@@ -223,24 +257,15 @@ html_content <- paste0('
         var colorMap = ', js_color_map, ';
         var githubBaseUrl = "', github_repo_url, '";
 
-        // Fetch and prepare the Old Map
+        // Fetch Old Map
         fetch(githubBaseUrl + "old_map.geojson")
             .then(res => res.json())
             .then(data => {
                 L.geoJSON(data, {
-                    style: {
-                        fillColor: "transparent",
-                        fillOpacity: 0, 
-                        color: "white",
-                        weight: 2,
-                        opacity: 1
-                    },
+                    style: { fillColor: "transparent", fillOpacity: 0, color: "white", weight: 2, opacity: 1 },
                     onEachFeature: function(feature, layer) {
                         var polyName = feature.properties.AREA_1 || feature.properties.area_1 || "Unknown";
-                        layer.bindTooltip("Old Polygon: " + polyName, { 
-                            sticky: true,
-                            className: "custom-tooltip"
-                        });
+                        layer.bindTooltip("Old Polygon: " + polyName, { sticky: true, className: "custom-tooltip" });
                     }
                 }).addTo(oldMapLayer);
             })
@@ -253,11 +278,10 @@ html_content <- paste0('
             }
         });
         
-        // 4. Dropdown Change Listener (The GitHub Fetch Mechanism)
+        // 4. Dropdown Change Listener
         document.getElementById("stateSelect").addEventListener("change", function(e) {
             var stateFile = e.target.value;
             
-            // If they select "None", clear map and reset view
             if (!stateFile) {
                 if(currentLayer) map.removeLayer(currentLayer);
                 map.setView([20.5937, 78.9629], 5);
@@ -274,21 +298,16 @@ html_content <- paste0('
                 .then(data => {
                     if(currentLayer) map.removeLayer(currentLayer);
 
-                    // Draw the Polygons
                     currentLayer = L.geoJSON(data, {
                         style: function(feature) {
                             var rawState = feature.properties.STATE || "";
                             var cleanState = String(rawState).trim();
-                            
                             var rawName = feature.properties.FILTER || "";
                             var cleanName = String(rawName).trim();
                             
                             var stateColors = colorMap[cleanState];
                             var polyColor = stateColors ? stateColors[cleanName] : null;
-                            
-                            if (!polyColor) {
-                                polyColor = "#3388ff"; 
-                            }
+                            if (!polyColor) polyColor = "#3388ff"; 
 
                             return {
                                 fillColor: polyColor,
@@ -299,14 +318,10 @@ html_content <- paste0('
                             };
                         },
                         onEachFeature: function(feature, layer) {
-                            layer.bindTooltip(feature.properties.FILTER || "Unknown", {
-                                sticky: true,
-                                className: "custom-tooltip"
-                            });
+                            layer.bindTooltip(feature.properties.FILTER || "Unknown", { sticky: true, className: "custom-tooltip" });
 
                             var pID = feature.properties["POLYGON.ID"] || feature.properties.POLYGON_ID || "N/A";
                             
-                            // USING TEMPLATE LITERALS FOR POPUP (Safe from R parsing)
                             var popupContent = `<div style="font-size: 14px;">
                                 <b>Polygon Name:</b> ${feature.properties.POLYGON || "N/A"}<br/>
                                 <b>Polygon ID:</b> ${pID}<br/>
@@ -322,8 +337,8 @@ html_content <- paste0('
                     map.fitBounds(currentLayer.getBounds());
                 })
                 .catch(err => {
-                    console.error("Error loading state data from GitHub:", err);
-                    alert("Could not load map data. Have you pushed the latest geojson files to GitHub yet?");
+                    console.error("Error loading state data:", err);
+                    alert("Could not load map data.");
                 });
         });
 
@@ -377,12 +392,12 @@ html_content <- paste0('
                         checklistMarker.bindPopup(popupHTML).openPopup();
                         map.setView([lat, lng], 13);
                     } else {
-                        alert("Checklist " + subId + " not found in the generated dataset.");
+                        alert("Checklist " + subId + " not found.");
                     }
                 })
                 .catch(err => {
                     console.error("Search Error:", err);
-                    alert("An error occurred while searching the datasets.");
+                    alert("An error occurred while searching.");
                 })
                 .finally(() => {
                     fetchBtn.innerText = originalBtnText; 
@@ -404,12 +419,11 @@ html_content <- paste0('
         var secondaryHotspotsLayer = L.layerGroup().addTo(map);
         var isSecondaryLoaded = false;
 
-        // Reveal the Primary Button when a state is selected
         document.getElementById("stateSelect").addEventListener("change", function(e) {
             hotspotsLayer.clearLayers();
             isHotspotsLoaded = false;
             hotspotBtn.innerText = "Show Hotspots";
-            hotspotBtn.style.backgroundColor = "#00008B"; 
+            hotspotBtn.style.backgroundColor = "#f39c12"; 
             
             if (e.target.value) {
                 hotspotBtn.style.display = "inline-block";
@@ -418,7 +432,6 @@ html_content <- paste0('
             }
         });
 
-        // Primary Hotspot API Call
         hotspotBtn.addEventListener("click", function() {
             if (isHotspotsLoaded) {
                 hotspotsLayer.clearLayers();
@@ -432,7 +445,7 @@ html_content <- paste0('
             var regionCode = stateCodeMap[stateFile];
 
             if (!regionCode) {
-                alert("Could not find the eBird region code for this state.");
+                alert("Could not find the eBird region code.");
                 return;
             }
 
@@ -456,11 +469,7 @@ html_content <- paste0('
                     </div>`;
 
                     var marker = L.circleMarker([hs.lat, hs.lng], {
-                        radius: 5,
-                        color: "#c0392b",
-                        fillColor: "#00008B",
-                        fillOpacity: 0.8,
-                        weight: 1
+                        radius: 5, color: "#c0392b", fillColor: "#00008B", fillOpacity: 0.8, weight: 1
                     }).bindPopup(popupHTML);
 
                     hotspotsLayer.addLayer(marker);
@@ -535,11 +544,7 @@ html_content <- paste0('
                     </div>`;
 
                     var marker = L.circleMarker([hs.lat, hs.lng], {
-                        radius: 5,
-                        color: "#27ae60",
-                        fillColor: "#2ecc71",
-                        fillOpacity: 0.8,
-                        weight: 1
+                        radius: 5, color: "#27ae60", fillColor: "#2ecc71", fillOpacity: 0.8, weight: 1
                     }).bindPopup(popupHTML);
 
                     secondaryHotspotsLayer.addLayer(marker);
@@ -580,4 +585,4 @@ html_content <- paste0('
 writeLines(html_content, "index.html")
 print("--- MAP PREPARATION COMPLETE ---")
 
-#source("git_auto_commit.R")
+source("git_auto_commit.R")
